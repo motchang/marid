@@ -1,0 +1,45 @@
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/marid
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+archives:
+  - format_overrides:
+      - goos: windows
+        format: zip
+    replacements:
+      darwin: macOS
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - Merge pull request
+      - Merge branch
+brews:
+  - name: marid
+    tap:
+      owner: motchang
+      name: homebrew-marid
+    commit_author:
+      name: Koji Okamoto
+      email: koji@example.com
+    homepage: "https://github.com/motchang/marid"
+    description: "MySQL to Mermaid ER Diagram Generator"
+    license: "MIT"
