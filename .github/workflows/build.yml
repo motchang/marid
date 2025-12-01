@@ -23,4 +23,13 @@ jobs:
     - name: Run tests
       run: |
         mkdir -p coverage
-        go test ./... -v -coverprofile=coverage/coverage.out
+        go test ./... -v -coverprofile=coverage/coverage.out -timeout=5m
+
+    - name: Generate coverage report
+      run: go tool cover -html=coverage/coverage.out -o coverage/coverage.html
+
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage
+        path: coverage
