@@ -47,6 +47,13 @@ Please follow our [Code of Conduct](CODE_OF_CONDUCT.md) in all your interactions
 - Run existing tests before submitting a PR: `go test ./...`
 - Make sure your code passes all CI checks
 
+### Coverage
+
+- To verify coverage locally, generate a profile with `go test -coverpkg=./... ./... -v -coverprofile=coverage/coverage.out -timeout=5m` and an HTML report with `go tool cover -html=coverage/coverage.out -o coverage/coverage.html`.
+- `./scripts/check-coverage-threshold.sh coverage/coverage.out 30` fails fast when total coverage drops below the CI threshold, and `./scripts/coverage-summary.sh coverage/coverage.out` prints the aggregate percentage for quick checks.
+- CI uploads the `coverage/` directory (including `coverage/coverage.out` and `coverage/coverage.html`) as a build artifact and posts a PR comment that lists the total coverage and a link to download the HTML report.
+- Remove generated coverage outputs with `rm -rf coverage` when you are done.
+
 ## Documentation
 
 - Update the README.md if necessary
