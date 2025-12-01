@@ -122,6 +122,12 @@ Run tests:
 go test ./...
 ```
 
+## Coverage
+
+- Generate local coverage with `go test -coverpkg=./... ./... -v -coverprofile=coverage/coverage.out -timeout=5m` and create an HTML report with `go tool cover -html=coverage/coverage.out -o coverage/coverage.html`.
+- CI uploads the `coverage/` directory (including `coverage/coverage.out` and `coverage/coverage.html`) as an artifact and comments on PRs with the total coverage and a download link for the HTML report.
+- Use `rm -rf coverage` to clean up generated coverage files when finished.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
