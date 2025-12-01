@@ -26,7 +26,11 @@ jobs:
     - name: Run tests
       run: |
         mkdir -p coverage
-        go test ./... -v -coverprofile=coverage/coverage.out -timeout=5m
+        go test -coverpkg=./... ./... -v -coverprofile=coverage/coverage.out -timeout=5m
+
+    - name: Verify coverage threshold
+      run: |
+        ./scripts/check-coverage-threshold.sh coverage/coverage.out 30
 
     - name: Generate coverage report
       run: go tool cover -html=coverage/coverage.out -o coverage/coverage.html
