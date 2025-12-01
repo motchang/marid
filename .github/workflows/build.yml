@@ -28,8 +28,31 @@ jobs:
     - name: Generate coverage report
       run: go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 
+    - name: Extract total coverage
+      id: coverage
+      run: |
+        TOTAL=$(./scripts/coverage-summary.sh coverage/coverage.out)
+        echo "total=${TOTAL}" >> "$GITHUB_OUTPUT"
+
     - name: Upload coverage artifact
+      id: coverage_artifact
       uses: actions/upload-artifact@v4
       with:
         name: coverage
         path: coverage
+
+    - name: Comment coverage on PR
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const coverage = '${{ steps.coverage.outputs.total }}';
+          const artifactUrl = '${{ steps.coverage_artifact.outputs.artifact-url }}';
+          const body = `### Coverage Report\n- Total coverage: **${coverage}**\n- [Download HTML coverage report](${artifactUrl}) for details.`;
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body,
+          });
