@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "18:00"
+      timezone: "Asia/Tokyo"
+    reviewers:
+      - "motchang"
+    versioning-strategy: increase
+    automerged_updates:
+      - match:
+          dependency_type: "all"
+          update_type: "all"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "18:00"
+      timezone: "Asia/Tokyo"
+    reviewers:
+      - "motchang"
+    automerged_updates:
+      - match:
+          dependency_type: "all"
+          update_type: "all"
