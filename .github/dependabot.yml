@@ -9,11 +9,6 @@ updates:
       timezone: "Asia/Tokyo"
     reviewers:
       - "motchang"
-    versioning-strategy: increase
-    automerged_updates:
-      - match:
-          dependency_type: "all"
-          update_type: "all"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -24,7 +19,3 @@ updates:
       timezone: "Asia/Tokyo"
     reviewers:
       - "motchang"
-    automerged_updates:
-      - match:
-          dependency_type: "all"
-          update_type: "all"
