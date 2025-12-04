@@ -9,7 +9,6 @@ updates:
       timezone: "Asia/Tokyo"
     reviewers:
       - "motchang"
-    versioning-strategy: increase
 
   - package-ecosystem: "github-actions"
     directory: "/"
