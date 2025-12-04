@@ -8,6 +8,8 @@ import (
 	"github.com/go-ini/ini"
 )
 
+var userHomeDir = os.UserHomeDir
+
 // MySQLConfig represents MySQL connection configuration from my.cnf
 type MySQLConfig struct {
 	Host     string
@@ -20,7 +22,7 @@ type MySQLConfig struct {
 // GetMyCnfConfig reads MySQL configuration from .my.cnf files
 func GetMyCnfConfig() (*MySQLConfig, error) {
 	// Get user's home directory
-	homeDir, err := os.UserHomeDir()
+	homeDir, err := userHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
