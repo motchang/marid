@@ -106,15 +106,15 @@ and generates Mermaid ER diagrams based on the schema.`,
 		},
 	}
 
-	rootCmd.Flags().StringVar(&cfgHost, "host", "localhost", "MySQL host address")
-	rootCmd.Flags().IntVar(&cfgPort, "port", 3306, "MySQL port")
-	rootCmd.Flags().StringVar(&cfgUser, "user", "root", "MySQL username")
-	rootCmd.Flags().StringVar(&cfgPassword, "password", "", "MySQL password (insecure, prefer --ask-password)")
-	rootCmd.Flags().BoolVar(&cfgPromptPass, "ask-password", false, "Prompt for password (secure)")
-	rootCmd.Flags().BoolVar(&cfgUseMyCnf, "use-mycnf", false, "Read connection info from ~/.my.cnf")
-	rootCmd.Flags().BoolVar(&cfgNoPassword, "no-password", false, "Connect without a password")
-	rootCmd.Flags().StringVar(&cfgDatabase, "database", "", "Database name (required)")
-	rootCmd.Flags().StringVar(&cfgTables, "tables", "", "Comma-separated list of tables (default: all tables)")
+        rootCmd.Flags().StringVarP(&cfgHost, "host", "H", "localhost", "MySQL host address")
+        rootCmd.Flags().IntVarP(&cfgPort, "port", "P", 3306, "MySQL port")
+        rootCmd.Flags().StringVarP(&cfgUser, "user", "u", "root", "MySQL username")
+        rootCmd.Flags().StringVarP(&cfgPassword, "password", "p", "", "MySQL password (insecure, prefer --ask-password)")
+        rootCmd.Flags().BoolVar(&cfgPromptPass, "ask-password", false, "Prompt for password (secure)")
+        rootCmd.Flags().BoolVarP(&cfgUseMyCnf, "use-mycnf", "c", false, "Read connection info from ~/.my.cnf")
+        rootCmd.Flags().BoolVarP(&cfgNoPassword, "no-password", "n", false, "Connect without a password")
+        rootCmd.Flags().StringVarP(&cfgDatabase, "database", "d", "", "Database name (required)")
+        rootCmd.Flags().StringVarP(&cfgTables, "tables", "t", "", "Comma-separated list of tables (default: all tables)")
 
 	return rootCmd
 }

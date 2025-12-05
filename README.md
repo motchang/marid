@@ -32,23 +32,25 @@ Pre-built binaries for Linux, macOS, and Windows are available on the [releases 
 Basic usage:
 
 ```bash
-marid -h localhost -P 3306 -u root -p password -d mydatabase
+marid -H localhost -P 3306 -u root -p password -d mydatabase
 ```
 
 ### Options
 
 ```
 Options:
-  -h, --host string       MySQL host address (default "localhost")
+  -H, --host string       MySQL host address (default "localhost")
   -P, --port int          MySQL port (default 3306)
   -u, --user string       MySQL username (default "root")
-  -p, --password string   MySQL password (INSECURE: visible in process list)
-  --ask-password          Prompt for password (secure, recommended)
+  -p, --password string   MySQL password (insecure, prefer --ask-password)
+  --ask-password          Prompt for password (secure)
   -c, --use-mycnf         Read connection info from ~/.my.cnf
   -n, --no-password       Connect without a password
   -d, --database string   Database name (required)
   -t, --tables string     Comma-separated list of tables (default: all tables)
-  --help                  Display help information
+  -h, --help              Display help information
+
+Note: `-h` is reserved for help output; use `-H` for the host shorthand.
 ```
 
 ### Example
