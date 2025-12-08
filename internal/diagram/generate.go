@@ -2,135 +2,72 @@ package diagram
 
 import (
 	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/motchang/marid/internal/schema"
+	"github.com/motchang/marid/pkg/formatter"
+	mermaidformatter "github.com/motchang/marid/pkg/formatter/mermaid"
 )
 
-// Generate creates a Mermaid ER diagram from the database schema
+// Generator coordinates rendering using a formatter.
+type Generator struct {
+	formatter formatter.Formatter
+}
+
+// NewGenerator creates a generator that uses the provided formatter.
+func NewGenerator(f formatter.Formatter) *Generator {
+	return &Generator{formatter: f}
+}
+
+// Generate creates a Mermaid ER diagram from the database schema.
 func Generate(dbSchema *schema.DatabaseSchema) (string, error) {
-	if len(dbSchema.Tables) == 0 {
+	generator := NewGenerator(mermaidformatter.NewFormatter())
+	return generator.Generate(dbSchema)
+}
+
+// Generate renders a diagram using the configured formatter.
+func (g *Generator) Generate(dbSchema *schema.DatabaseSchema) (string, error) {
+	if dbSchema == nil || len(dbSchema.Tables) == 0 {
 		return "", fmt.Errorf("no tables found in schema")
 	}
 
-	var builder strings.Builder
-
-	// Start Mermaid ER diagram
-	builder.WriteString("erDiagram\n")
-
-	// Process each table
-	for _, table := range dbSchema.Tables {
-		// Add table entity
-		builder.WriteString(fmt.Sprintf("    %s {\n", table.Name))
-
-		// Add columns
-		for _, column := range table.Columns {
-			// Determine key constraints
-			keyConstraints := []string{}
-
-			// Check for primary key
-			isPrimary := false
-			for _, pk := range table.PrimaryKey {
-				if pk == column.Name {
-					isPrimary = true
-					keyConstraints = append(keyConstraints, "PK")
-					break
-				}
-			}
-
-			// Check for foreign key
-			for _, fk := range table.ForeignKeys {
-				if fk.ColumnName == column.Name {
-					keyConstraints = append(keyConstraints, "FK")
-					break
-				}
-			}
-
-			// Check for unique key (if column has unique constraint)
-			if column.IsUnique && !isPrimary { // Primary keys are implicitly unique
-				keyConstraints = append(keyConstraints, "UK")
-			}
-
-			// Format data type
-			dataType := column.DataType
-
-			// Build the attribute line
-			attrLine := fmt.Sprintf("        %s %s", column.Name, dataType)
-
-			// Add key constraints if any
-			if len(keyConstraints) > 0 {
-				attrLine += " " + strings.Join(keyConstraints, ", ")
-			}
-
-			// Add column comment if available
-			if column.Comment != "" {
-				attrLine += fmt.Sprintf(" \"%s\"", column.Comment)
-			}
-
-			builder.WriteString(attrLine + "\n")
-		}
-		builder.WriteString("    }\n")
-	}
-
-	// Collect all relationships
-	type Relationship struct {
-		SourceTable      string
-		TargetTable      string
-		RelationName     string
-		CrossingDistance int // Measure of how far apart the tables are
-	}
-
-	var relationships []Relationship
-
-	// Build table position map (for calculating crossing distance)
-	tablePositions := make(map[string]int)
-	for i, table := range dbSchema.Tables {
-		tablePositions[table.Name] = i
-	}
-
-	// Collect all relationships and calculate crossing distances
-	for _, table := range dbSchema.Tables {
-		for _, fk := range table.ForeignKeys {
-			sourcePos, sourceExists := tablePositions[fk.ReferencedTable]
-			targetPos, targetExists := tablePositions[table.Name]
-
-			crossingDistance := 0
-			if sourceExists && targetExists {
-				crossingDistance = abs(sourcePos - targetPos)
-			}
-
-			relationships = append(relationships, Relationship{
-				SourceTable:      fk.ReferencedTable,
-				TargetTable:      table.Name,
-				RelationName:     fk.RelationName,
-				CrossingDistance: crossingDistance,
-			})
-		}
-	}
-
-	// Sort relationships to minimize crossings
-	// Strategy: Draw shorter edges first (less likely to cross other edges)
-	sort.Slice(relationships, func(i, j int) bool {
-		return relationships[i].CrossingDistance < relationships[j].CrossingDistance
-	})
-
-	// Process relationships in optimized order
-	for _, rel := range relationships {
-		relationship := fmt.Sprintf("    %s ||--o{ %s : \"%s\"\n",
-			rel.SourceTable,
-			rel.TargetTable,
-			rel.RelationName)
-		builder.WriteString(relationship)
-	}
-
-	return builder.String(), nil
+	renderData := toRenderData(dbSchema)
+	return g.formatter.Render(renderData)
 }
 
-// Helper function to calculate absolute value
-func abs(x int) int {
-	if x < 0 {
-		return -x
+func toRenderData(dbSchema *schema.DatabaseSchema) formatter.RenderData {
+	tables := make([]formatter.Table, len(dbSchema.Tables))
+
+	for i, tbl := range dbSchema.Tables {
+		columns := make([]formatter.Column, len(tbl.Columns))
+		for ci, col := range tbl.Columns {
+			columns[ci] = formatter.Column{
+				Name:       col.Name,
+				DataType:   col.DataType,
+				IsNullable: col.IsNullable,
+				IsPrimary:  col.IsPrimary,
+				IsUnique:   col.IsUnique,
+				Comment:    col.Comment,
+			}
+		}
+
+		foreignKeys := make([]formatter.ForeignKey, len(tbl.ForeignKeys))
+		for fi, fk := range tbl.ForeignKeys {
+			foreignKeys[fi] = formatter.ForeignKey{
+				ColumnName:       fk.ColumnName,
+				ReferencedTable:  fk.ReferencedTable,
+				ReferencedColumn: fk.ReferencedColumn,
+				RelationName:     fk.RelationName,
+			}
+		}
+
+		tables[i] = formatter.Table{
+			Name:        tbl.Name,
+			Comment:     tbl.Comment,
+			Columns:     columns,
+			PrimaryKey:  append([]string(nil), tbl.PrimaryKey...),
+			ForeignKeys: foreignKeys,
+		}
 	}
-	return x
+
+	return formatter.RenderData{Tables: tables}
 }
