@@ -14,8 +14,11 @@ type Generator struct {
 }
 
 // New creates a generator that uses the provided formatter.
+//
+// In Go, constructor-style functions typically use the package name for
+// disambiguation (e.g. diagram.New), so the bare New name is idiomatic.
 func New(f formatter.Formatter) *Generator {
-	return &Generator{formatter: f}
+        return &Generator{formatter: f}
 }
 
 // Generate creates a Mermaid ER diagram from the database schema.
