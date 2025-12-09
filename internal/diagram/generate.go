@@ -13,14 +13,14 @@ type Generator struct {
 	formatter formatter.Formatter
 }
 
-// NewGenerator creates a generator that uses the provided formatter.
-func NewGenerator(f formatter.Formatter) *Generator {
+// New creates a generator that uses the provided formatter.
+func New(f formatter.Formatter) *Generator {
 	return &Generator{formatter: f}
 }
 
 // Generate creates a Mermaid ER diagram from the database schema.
 func Generate(dbSchema *schema.DatabaseSchema) (string, error) {
-	generator := NewGenerator(mermaidformatter.NewFormatter())
+	generator := New(mermaidformatter.NewFormatter())
 	return generator.Generate(dbSchema)
 }
 
