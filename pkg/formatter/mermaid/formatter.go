@@ -8,6 +8,12 @@ import (
 	"github.com/motchang/marid/pkg/formatter"
 )
 
+func init() {
+	formatter.Register("mermaid", func() formatter.Formatter {
+		return New()
+	})
+}
+
 // Formatter renders ER diagrams using Mermaid syntax.
 type Formatter struct{}
 

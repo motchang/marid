@@ -64,6 +64,7 @@ func TestMergeWithCommandLineConfig(t *testing.T) {
 		Password: "cli-pass",
 		Database: "cli-db",
 		Tables:   "users,orders",
+		Format:   "mermaid",
 	}
 
 	merged := MergeWithCommandLineConfig(mycnf, cmdCfg)
@@ -90,6 +91,10 @@ func TestMergeWithCommandLineConfig(t *testing.T) {
 
 	if merged.Tables != cmdCfg.Tables {
 		t.Fatalf("expected tables %q, got %q", cmdCfg.Tables, merged.Tables)
+	}
+
+	if merged.Format != cmdCfg.Format {
+		t.Fatalf("expected format %q, got %q", cmdCfg.Format, merged.Format)
 	}
 
 	t.Run("falls back to mycnf values when cli is empty", func(t *testing.T) {

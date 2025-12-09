@@ -5,7 +5,7 @@ import (
 
 	"github.com/motchang/marid/internal/schema"
 	"github.com/motchang/marid/pkg/formatter"
-	mermaidformatter "github.com/motchang/marid/pkg/formatter/mermaid"
+	_ "github.com/motchang/marid/pkg/formatter/mermaid"
 )
 
 // Generator coordinates rendering using a formatter.
@@ -21,9 +21,16 @@ func New(f formatter.Formatter) *Generator {
 	return &Generator{formatter: f}
 }
 
-// Generate creates a Mermaid ER diagram from the database schema.
-func Generate(dbSchema *schema.DatabaseSchema) (string, error) {
-	generator := New(mermaidformatter.New())
+// Generate renders a diagram using the formatter associated with the provided format name.
+//
+// If format is empty, formatter.DefaultFormat is used.
+func Generate(dbSchema *schema.DatabaseSchema, format string) (string, error) {
+	fmttr, err := formatter.Get(format)
+	if err != nil {
+		return "", err
+	}
+
+	generator := New(fmttr)
 	return generator.Generate(dbSchema)
 }
 

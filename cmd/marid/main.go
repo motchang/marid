@@ -9,6 +9,7 @@ import (
 	"github.com/motchang/marid/internal/database"
 	"github.com/motchang/marid/internal/diagram"
 	"github.com/motchang/marid/internal/schema"
+	"github.com/motchang/marid/pkg/formatter"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +20,7 @@ var (
 	cfgPassword   string
 	cfgDatabase   string
 	cfgTables     string
+	cfgFormat     string
 	cfgPromptPass bool
 	cfgUseMyCnf   bool
 	cfgNoPassword bool
@@ -53,6 +55,7 @@ and generates Mermaid ER diagrams based on the schema.`,
 				Password: cfgPassword,
 				Database: cfgDatabase,
 				Tables:   cfgTables,
+				Format:   cfgFormat,
 			}
 
 			cfg := cmdConfig
@@ -96,7 +99,7 @@ and generates Mermaid ER diagrams based on the schema.`,
 				return fmt.Errorf("failed to extract schema: %w", err)
 			}
 
-			mermaidDiagram, err := generate(dbSchema)
+			mermaidDiagram, err := generate(dbSchema, cfg.Format)
 			if err != nil {
 				return fmt.Errorf("failed to generate diagram: %w", err)
 			}
@@ -116,6 +119,7 @@ and generates Mermaid ER diagrams based on the schema.`,
 	rootCmd.Flags().BoolVarP(&cfgNoPassword, "no-password", "n", false, "Connect without a password")
 	rootCmd.Flags().StringVarP(&cfgDatabase, "database", "d", "", "Database name (required)")
 	rootCmd.Flags().StringVarP(&cfgTables, "tables", "t", "", "Comma-separated list of tables (default: all tables)")
+	rootCmd.Flags().StringVarP(&cfgFormat, "format", "f", formatter.DefaultFormat, "Output format (available: mermaid)")
 
 	return rootCmd
 }

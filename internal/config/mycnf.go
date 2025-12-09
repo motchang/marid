@@ -85,6 +85,7 @@ func MergeWithCommandLineConfig(myCnfConfig *MySQLConfig, cmdConfig *Config) *Co
 		Password: myCnfConfig.Password,
 		Database: myCnfConfig.Database,
 		Tables:   cmdConfig.Tables, // Tables are only specified via command line
+		Format:   cmdConfig.Format,
 	}
 
 	// Override with command line values if they're not empty
@@ -106,6 +107,10 @@ func MergeWithCommandLineConfig(myCnfConfig *MySQLConfig, cmdConfig *Config) *Co
 
 	if cmdConfig.Database != "" {
 		mergedConfig.Database = cmdConfig.Database
+	}
+
+	if cmdConfig.Format != "" {
+		mergedConfig.Format = cmdConfig.Format
 	}
 
 	return mergedConfig

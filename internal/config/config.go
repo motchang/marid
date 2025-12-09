@@ -8,6 +8,7 @@ type Config struct {
 	Password string
 	Database string
 	Tables   string
+	Format   string
 }
 
 // GetTablesList returns a slice of table names from the comma-separated list
