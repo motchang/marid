@@ -11,8 +11,8 @@ import (
 // Formatter renders ER diagrams using Mermaid syntax.
 type Formatter struct{}
 
-// NewFormatter creates a new Mermaid formatter instance.
-func NewFormatter() Formatter {
+// New creates a new Mermaid formatter instance.
+func New() Formatter {
 	return Formatter{}
 }
 
