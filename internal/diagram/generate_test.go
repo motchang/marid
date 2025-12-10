@@ -45,7 +45,7 @@ func TestGenerate(t *testing.T) {
 		"    }\n" +
 		"    users ||--o{ orders : \"orders_users_fk\"\n"
 
-	got, err := Generate(dbSchema)
+	got, err := Generate(dbSchema, "")
 	if err != nil {
 		t.Fatalf("Generate returned error: %v", err)
 	}
@@ -56,8 +56,20 @@ func TestGenerate(t *testing.T) {
 }
 
 func TestGenerateReturnsErrorWhenNoTables(t *testing.T) {
-	_, err := Generate(&schema.DatabaseSchema{})
+	_, err := Generate(&schema.DatabaseSchema{}, "")
 	if err == nil {
 		t.Fatal("expected error when schema has no tables")
+	}
+}
+
+func TestGenerateReturnsErrorForUnknownFormat(t *testing.T) {
+	_, err := Generate(&schema.DatabaseSchema{Tables: []schema.Table{{Name: "users"}}}, "unknown")
+	if err == nil {
+		t.Fatal("expected error when format is unknown")
+	}
+
+	const want = "unknown format \"unknown\". Available formats: mermaid"
+	if err.Error() != want {
+		t.Fatalf("unexpected error message: %q", err.Error())
 	}
 }

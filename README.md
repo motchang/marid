@@ -48,10 +48,17 @@ Options:
   -n, --no-password       Connect without a password
   -d, --database string   Database name (required)
   -t, --tables string     Comma-separated list of tables (default: all tables)
+  -f, --format string     Output format (default: mermaid; available: mermaid)
   -h, --help              Display help information
 
 Note: `-h` is reserved for help output; use `-H` for the host shorthand.
 ```
+
+### Output formats
+
+- Mermaid is the default formatter.
+- Use `--format` (or `-f`) to choose another registered formatter.
+- When an unknown format is provided, Marid returns an error listing the available formatters so you can pick a supported one.
 
 ### Example
 

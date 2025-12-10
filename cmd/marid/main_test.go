@@ -11,6 +11,7 @@ import (
 	"github.com/motchang/marid/internal/database"
 	"github.com/motchang/marid/internal/diagram"
 	"github.com/motchang/marid/internal/schema"
+	"github.com/motchang/marid/pkg/formatter"
 )
 
 func resetGlobals() {
@@ -20,6 +21,7 @@ func resetGlobals() {
 	cfgPassword = ""
 	cfgDatabase = ""
 	cfgTables = ""
+	cfgFormat = formatter.DefaultFormat
 	cfgPromptPass = false
 	cfgUseMyCnf = false
 	cfgNoPassword = false
@@ -210,10 +212,13 @@ func TestSuccessfulExecution(t *testing.T) {
 		return &schema.DatabaseSchema{Config: cfg}, nil
 	}
 
-	generate = func(dbSchema *schema.DatabaseSchema) (string, error) {
+	generate = func(dbSchema *schema.DatabaseSchema, format string) (string, error) {
 		generateCalled = true
 		if dbSchema.Config.Database != "cli-db" {
 			t.Fatalf("unexpected database in schema: %s", dbSchema.Config.Database)
+		}
+		if format != formatter.DefaultFormat {
+			t.Fatalf("unexpected format: %s", format)
 		}
 		return "diagram-output", nil
 	}
@@ -233,5 +238,36 @@ func TestSuccessfulExecution(t *testing.T) {
 
 	if !strings.Contains(stdout.String(), "diagram-output") {
 		t.Fatalf("expected diagram output, got %q", stdout.String())
+	}
+}
+
+func TestUnknownFormatError(t *testing.T) {
+	resetGlobals()
+	t.Cleanup(resetGlobals)
+
+	connect = func(cfg config.Config) (*sql.DB, error) {
+		if cfg.Format != "unknown" {
+			t.Fatalf("expected format to be forwarded, got %q", cfg.Format)
+		}
+		return nil, nil
+	}
+
+	extract = func(db *sql.DB, cfg config.Config) (*schema.DatabaseSchema, error) {
+		return &schema.DatabaseSchema{Config: cfg, Tables: []schema.Table{{Name: "users"}}}, nil
+	}
+
+	generate = diagram.Generate
+
+	cmd := buildRootCmd()
+	cmd.SetArgs([]string{"--database", "cli-db", "--format", "unknown"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatalf("expected error for unknown format")
+	}
+
+	const want = "failed to generate diagram: unknown format \"unknown\". Available formats: mermaid"
+	if err.Error() != want {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

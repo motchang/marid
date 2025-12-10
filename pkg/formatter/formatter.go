@@ -10,6 +10,12 @@ type Formatter interface {
 	Render(RenderData) (string, error)
 }
 
+// Factory constructs a Formatter instance.
+type Factory func() Formatter
+
+// DefaultFormat is the fallback format name when none is provided.
+const DefaultFormat = "mermaid"
+
 // RenderData represents normalized schema information passed to formatters.
 type RenderData struct {
 	Tables []Table
