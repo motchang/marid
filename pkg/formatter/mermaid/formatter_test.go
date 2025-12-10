@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/motchang/marid/pkg/formatter"
+	"github.com/motchang/marid/pkg/formatter/formattertest"
 )
 
 func TestFormatterMetadata(t *testing.T) {
@@ -30,53 +31,12 @@ func TestRenderNoTables(t *testing.T) {
 func TestRenderGeneratesMermaidDiagram(t *testing.T) {
 	f := New()
 
-	data := formatter.RenderData{
-		Tables: []formatter.Table{
-			{
-				Name:       "teams",
-				PrimaryKey: []string{"id"},
-				Columns: []formatter.Column{
-					{Name: "id", DataType: "int"},
-					{Name: "name", DataType: "text"},
-				},
-			},
-			{
-				Name:       "users",
-				PrimaryKey: []string{"id"},
-				Columns: []formatter.Column{
-					{Name: "id", DataType: "int"},
-					{Name: "email", DataType: "varchar", IsUnique: true},
-					{Name: "team_id", DataType: "int"},
-				},
-				ForeignKeys: []formatter.ForeignKey{
-					{
-						ColumnName:       "team_id",
-						ReferencedTable:  "teams",
-						ReferencedColumn: "id",
-						RelationName:     "belongs_to",
-					},
-				},
-			},
-		},
-	}
-
-	got, err := f.Render(data)
+	got, err := f.Render(formattertest.SampleRenderData())
 	if err != nil {
 		t.Fatalf("Render returned error: %v", err)
 	}
 
-	const want = `erDiagram
-    teams {
-        id int PK
-        name text
-    }
-    users {
-        id int PK
-        email varchar UK
-        team_id int FK
-    }
-    teams ||--o{ users : "belongs_to"
-`
+	want := formattertest.SampleMermaidOutput()
 
 	if got != want {
 		t.Fatalf("Render() output mismatch\n--- want ---\n%s\n--- got ---\n%s", want, got)

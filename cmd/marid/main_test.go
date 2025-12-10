@@ -241,6 +241,56 @@ func TestSuccessfulExecution(t *testing.T) {
 	}
 }
 
+func TestSuccessfulExecutionWithExplicitMermaidFormat(t *testing.T) {
+	resetGlobals()
+	t.Cleanup(resetGlobals)
+
+	connectCalled := false
+	extractCalled := false
+	generateCalled := false
+
+	connect = func(cfg config.Config) (*sql.DB, error) {
+		connectCalled = true
+		if cfg.Format != "mermaid" {
+			t.Fatalf("unexpected format propagated to connect: %s", cfg.Format)
+		}
+		return nil, nil
+	}
+
+	extract = func(db *sql.DB, cfg config.Config) (*schema.DatabaseSchema, error) {
+		extractCalled = true
+		if cfg.Format != "mermaid" {
+			t.Fatalf("unexpected format propagated to extract: %s", cfg.Format)
+		}
+		return &schema.DatabaseSchema{Config: cfg}, nil
+	}
+
+	generate = func(dbSchema *schema.DatabaseSchema, format string) (string, error) {
+		generateCalled = true
+		if format != "mermaid" {
+			t.Fatalf("unexpected format received by generate: %s", format)
+		}
+		return "mermaid-diagram-output", nil
+	}
+
+	cmd := buildRootCmd()
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetArgs([]string{"--database", "cli-db", "--format", "mermaid"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("expected successful execution, got %v", err)
+	}
+
+	if !connectCalled || !extractCalled || !generateCalled {
+		t.Fatalf("expected all pipeline functions to be called")
+	}
+
+	if !strings.Contains(stdout.String(), "mermaid-diagram-output") {
+		t.Fatalf("expected mermaid diagram output, got %q", stdout.String())
+	}
+}
+
 func TestUnknownFormatError(t *testing.T) {
 	resetGlobals()
 	t.Cleanup(resetGlobals)
