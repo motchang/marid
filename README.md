@@ -120,9 +120,6 @@ snapshot Mermaid output used in tests with Marid itself:
 marid -H localhost -P 3306 -u root -p password -d ecommerce > testdata/expected/ecommerce.mmd
 ```
 
-The diagram stored at `testdata/expected/ecommerce.mmd` reflects the schema and seed data without depending on Marid's
-internal implementation details.
-
 ## Building from Source
 
 Clone the repository:
