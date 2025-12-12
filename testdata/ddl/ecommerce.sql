@@ -25,7 +25,8 @@ CREATE TABLE inventory (
     quantity INT NOT NULL DEFAULT 0,
     location VARCHAR(64) NOT NULL DEFAULT 'default',
     CONSTRAINT fk_inventory_product FOREIGN KEY (product_id) REFERENCES products(id),
-    UNIQUE KEY uk_inventory_product_location (product_id, location)
+    UNIQUE KEY uk_inventory_product (product_id),
+    UNIQUE KEY uk_inventory_location (location)
 ) COMMENT 'Current on-hand counts for each product and location';
 
 CREATE TABLE orders (

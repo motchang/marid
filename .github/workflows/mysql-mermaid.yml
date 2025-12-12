@@ -1,0 +1,65 @@
+name: MySQL Mermaid Snapshot
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  mysql-mermaid:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: ecommerce
+          MYSQL_USER: marid
+          MYSQL_PASSWORD: maridpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost -ppassword"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: "3306"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Install MySQL client
+        run: sudo apt-get update && sudo apt-get install -y mysql-client
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h "$MYSQL_HOST" -P "$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" --silent; then
+              break
+            fi
+            echo "Waiting for MySQL to be ready ($i/30)..."
+            sleep 2
+          done
+          mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SELECT VERSION();"
+
+      - name: Load schema and seed data
+        run: mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" < testdata/ddl/ecommerce.sql
+
+      - name: Build marid binary
+        run: go build -o marid ./cmd/marid
+
+      - name: Generate Mermaid snapshot
+        run: ./marid -H "$MYSQL_HOST" -P "$MYSQL_PORT" -u root -p "$MYSQL_ROOT_PASSWORD" -d ecommerce --format mermaid > /tmp/ecommerce.mmd
+
+      - name: Validate Mermaid output
+        run: diff -u testdata/expected/ecommerce.mmd /tmp/ecommerce.mmd
