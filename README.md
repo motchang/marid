@@ -131,6 +131,60 @@ Run tests:
 go test ./...
 ```
 
+## Formatter Development Guide
+
+### Package layout and responsibilities
+
+- `cmd/marid/`: CLI entrypoint. Responsible only for reading configuration and booting the application.
+- `internal/`: Non-public implementations such as database connections, schema retrieval, and domain logic.
+- `pkg/formatter/`: Public API layer that collects rendering implementations for each output format (Mermaid, PlantUML, etc.). Add new formatters here and consume them from `internal` through the interface to keep responsibilities separated and minimize the blast radius of new formats.
+
+### How to add a formatter
+
+1. Create a dedicated package such as `pkg/formatter/<format>/formatter.go` and implement the `formatter.Formatter` interface (`Name`/`MediaType`/`Render`).
+2. Call `formatter.Register("<format>", func() formatter.Formatter { return New() })` from an `init` function to register your factory.
+3. No new CLI option is required—pass the registered name to `--format` to enable your formatter.
+
+### Registering with the formatter registry
+
+- `formatter.Register` accepts a unique format name and a `formatter.Factory`. Avoid empty names, duplicates, or `nil` factories; they will panic.
+- The name is the user-facing identifier passed via `--format`. Prefer a short slug that does not conflict with the existing `mermaid` entry.
+- The registry is built automatically at startup; `formatter.Get` returns `mermaid` (the default) when no name is provided.
+
+### How to add tests
+
+- The quickest path is to add a single expectation to the existing contract tests. In `pkg/formatter/formatter_contract_test.go`, extend the table with the new constructor (the equivalent of `formatter.New()`) plus the expected name, media type, and a snippet of representative output.
+- For formatter-specific behaviors, use the mocks in `pkg/formatter/formattertest` or the sample data described in [`docs/formatters/testing_template.md`](docs/formatters/testing_template.md).
+- Run `go test ./...` to guard against regressions while verifying rendering and registry integration for your new formatter.
+
+### PlantUML skeleton
+
+Here is the minimal structure for a PlantUML formatter. Create `pkg/formatter/plantuml/formatter.go` and adapt the rendering logic as needed.
+
+```go
+package plantuml
+
+import "github.com/motchang/marid/pkg/formatter"
+
+func init() {
+    formatter.Register("plantuml", func() formatter.Formatter { return New() })
+}
+
+type Formatter struct{}
+
+func New() Formatter { return Formatter{} }
+
+func (Formatter) Name() string      { return "plantuml" }
+func (Formatter) MediaType() string { return "text/plain" }
+
+func (Formatter) Render(data formatter.RenderData) (string, error) {
+    // Iterate over data.Tables to generate a PlantUML string with @startuml / @enduml markers
+    return "@startuml\n...\n@enduml", nil
+}
+```
+
+For richer sample data and mock usage, see [`docs/formatters/testing_template.md`](docs/formatters/testing_template.md).
+
 ## Coverage
 
 - Generate local coverage with `go test -coverpkg=./... ./... -v -coverprofile=coverage/coverage.out -timeout=5m` and create an HTML report with `go tool cover -html=coverage/coverage.out -o coverage/coverage.html`.
