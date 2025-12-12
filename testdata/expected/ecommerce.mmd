@@ -1,9 +1,9 @@
 erDiagram
     inventory {
         id bigint PK
-        product_id bigint FK, UK
+        product_id bigint FK
         quantity int
-        location varchar UK
+        location varchar
     }
     order_items {
         id bigint PK
@@ -39,3 +39,4 @@ erDiagram
     products ||--o{ order_items : "fk_order_items_product"
     users ||--o{ orders : "fk_orders_user"
     products ||--o{ inventory : "fk_inventory_product"
+
