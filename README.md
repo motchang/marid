@@ -110,6 +110,16 @@ You can render the Mermaid diagram using:
 3. GitLab or GitHub Markdown (both support Mermaid syntax)
 4. Any Mermaid-compatible tool
 
+## Sample schema and expected Mermaid output
+
+An example EC-style schema (users, products, inventory, orders, order_items) with foreign keys and seed data lives in
+`testdata/ddl/ecommerce.sql`. Load the schema into a local MySQL instance (e.g., database name `ecommerce`) and render the
+snapshot Mermaid output used in tests with Marid itself:
+
+```bash
+marid -H localhost -P 3306 -u root -p password -d ecommerce > testdata/expected/ecommerce.mmd
+```
+
 ## Building from Source
 
 Clone the repository:

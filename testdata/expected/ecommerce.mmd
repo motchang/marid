@@ -1,0 +1,41 @@
+erDiagram
+    inventory {
+        id bigint PK
+        product_id bigint FK, UK
+        quantity int
+        location varchar UK
+    }
+    order_items {
+        id bigint PK
+        order_id bigint FK
+        product_id bigint FK
+        quantity int
+        unit_price decimal
+    }
+    orders {
+        id bigint PK
+        user_id bigint FK
+        status varchar
+        total_amount decimal
+        placed_at datetime
+    }
+    products {
+        id bigint PK
+        name varchar
+        sku varchar UK
+        price decimal
+        created_at datetime
+        updated_at datetime
+    }
+    users {
+        id bigint PK
+        name varchar
+        email varchar UK
+        created_at datetime
+        updated_at datetime
+        comment text
+    }
+    orders ||--o{ order_items : "fk_order_items_order"
+    products ||--o{ order_items : "fk_order_items_product"
+    users ||--o{ orders : "fk_orders_user"
+    products ||--o{ inventory : "fk_inventory_product"
