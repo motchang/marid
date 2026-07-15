@@ -1,0 +1,12 @@
+repository: ${GITHUB_REPOSITORY}/complexity
+comment:
+  if: is_pull_request
+summary:
+  if: true
+report:
+  if: is_default_branch
+  datastores:
+    - github://${GITHUB_REPOSITORY}@octocov/complexity-reports
+diff:
+  datastores:
+    - github://${GITHUB_REPOSITORY}@octocov/complexity-reports
