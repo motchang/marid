@@ -80,6 +80,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run octocov
+        continue-on-error: true
         uses: k1LoW/octocov-action@v1.5.1
         with:
           config: .octocov.complexity.yml

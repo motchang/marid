@@ -35,7 +35,7 @@ func expectNoRemaining(t *testing.T, mock sqlmock.Sqlmock) {
 func TestExtractSuccessWithFiltering(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	cfg := config.Config{Database: "testdb", Tables: "users"}
 
@@ -165,7 +165,7 @@ func TestExtractSuccessWithFiltering(t *testing.T) {
 func TestGetTablesQueryError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	cfg := config.Config{Database: "db"}
 	mock.ExpectQuery(regexp.QuoteMeta(`
@@ -186,7 +186,7 @@ func TestGetTablesQueryError(t *testing.T) {
 func TestGetTablesScanError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	cfg := config.Config{Database: "db"}
 	rows := sqlmock.NewRows([]string{"TABLE_NAME"}).AddRow(nil)
@@ -208,7 +208,7 @@ func TestGetTablesScanError(t *testing.T) {
 func TestGetTablesRowsError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	cfg := config.Config{Database: "db"}
 	rows := sqlmock.NewRows([]string{"TABLE_NAME"}).AddRow("users").RowError(0, errors.New("row error"))
@@ -230,7 +230,7 @@ func TestGetTablesRowsError(t *testing.T) {
 func TestExtractColumnsQueryError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	mock.ExpectQuery(regexp.QuoteMeta(`
@@ -259,7 +259,7 @@ func TestExtractColumnsQueryError(t *testing.T) {
 func TestExtractColumnsScanError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	rows := sqlmock.NewRows([]string{"COLUMN_NAME", "DATA_TYPE", "IS_NULLABLE", "COLUMN_KEY", "COLUMN_COMMENT"}).
@@ -290,7 +290,7 @@ func TestExtractColumnsScanError(t *testing.T) {
 func TestExtractColumnsRowsError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	rows := sqlmock.NewRows([]string{"COLUMN_NAME", "DATA_TYPE", "IS_NULLABLE", "COLUMN_KEY", "COLUMN_COMMENT"}).
@@ -322,7 +322,7 @@ func TestExtractColumnsRowsError(t *testing.T) {
 func TestExtractPrimaryKeysQueryError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	mock.ExpectQuery(regexp.QuoteMeta(`
@@ -348,7 +348,7 @@ func TestExtractPrimaryKeysQueryError(t *testing.T) {
 func TestExtractPrimaryKeysScanError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	rows := sqlmock.NewRows([]string{"COLUMN_NAME"}).AddRow(nil)
@@ -375,7 +375,7 @@ func TestExtractPrimaryKeysScanError(t *testing.T) {
 func TestExtractPrimaryKeysRowsError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	rows := sqlmock.NewRows([]string{"COLUMN_NAME"}).AddRow("id").RowError(0, errors.New("row error"))
@@ -402,7 +402,7 @@ func TestExtractPrimaryKeysRowsError(t *testing.T) {
 func TestExtractForeignKeysQueryError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	mock.ExpectQuery(regexp.QuoteMeta(`
@@ -431,7 +431,7 @@ func TestExtractForeignKeysQueryError(t *testing.T) {
 func TestExtractForeignKeysScanError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	rows := sqlmock.NewRows([]string{"COLUMN_NAME", "REFERENCED_TABLE_NAME", "REFERENCED_COLUMN_NAME", "CONSTRAINT_NAME"}).
@@ -462,7 +462,7 @@ func TestExtractForeignKeysScanError(t *testing.T) {
 func TestExtractForeignKeysRowsError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	rows := sqlmock.NewRows([]string{"COLUMN_NAME", "REFERENCED_TABLE_NAME", "REFERENCED_COLUMN_NAME", "CONSTRAINT_NAME"}).
@@ -494,7 +494,7 @@ func TestExtractForeignKeysRowsError(t *testing.T) {
 func TestExtractTableInfoCommentError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tableName := "users"
 	mock.ExpectQuery(regexp.QuoteMeta(`
@@ -517,7 +517,7 @@ func TestExtractTableInfoCommentError(t *testing.T) {
 func TestExtractTableInfoColumnError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tableName := "users"
 	mock.ExpectQuery(regexp.QuoteMeta(`
@@ -558,7 +558,7 @@ func TestExtractTableInfoColumnError(t *testing.T) {
 func TestExtractTableInfoPrimaryKeyError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tableName := "users"
 	mock.ExpectQuery(regexp.QuoteMeta(`
@@ -614,7 +614,7 @@ func TestExtractTableInfoPrimaryKeyError(t *testing.T) {
 func TestExtractTableInfoForeignKeyError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tableName := "users"
 	mock.ExpectQuery(regexp.QuoteMeta(`
@@ -688,7 +688,7 @@ func TestExtractTableInfoForeignKeyError(t *testing.T) {
 func TestExtractColumnsSetsFlags(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	rows := sqlmock.NewRows([]string{"COLUMN_NAME", "DATA_TYPE", "IS_NULLABLE", "COLUMN_KEY", "COLUMN_COMMENT"}).
@@ -733,7 +733,7 @@ func TestExtractColumnsSetsFlags(t *testing.T) {
 func TestExtractForeignKeysCaptured(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "orders"}
 	rows := sqlmock.NewRows([]string{"COLUMN_NAME", "REFERENCED_TABLE_NAME", "REFERENCED_COLUMN_NAME", "CONSTRAINT_NAME"}).
@@ -776,7 +776,7 @@ func TestExtractForeignKeysCaptured(t *testing.T) {
 func TestExtractPrimaryKeysPopulate(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	table := &Table{Name: "users"}
 	rows := sqlmock.NewRows([]string{"COLUMN_NAME"}).AddRow("id").AddRow("email")
@@ -811,7 +811,7 @@ func TestExtractPrimaryKeysPopulate(t *testing.T) {
 func TestExtractHandlesMultipleTables(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	mustNoError(t, err, "creating mock")
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	cfg := config.Config{Database: "testdb"}
 
