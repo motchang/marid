@@ -6,7 +6,7 @@ summary:
 report:
   if: is_default_branch
   datastores:
-    - github://${GITHUB_REPOSITORY}@octocov/complexity-reports
+    - artifact://${GITHUB_REPOSITORY}
 diff:
   datastores:
-    - github://${GITHUB_REPOSITORY}@octocov/complexity-reports
+    - artifact://${GITHUB_REPOSITORY}
