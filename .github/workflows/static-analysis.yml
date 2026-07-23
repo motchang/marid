@@ -79,8 +79,40 @@ jobs:
             ' cccc.json
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Check octocov datastore
+        id: octocov-datastore
+        run: |
+          if git ls-remote --exit-code origin refs/heads/octocov/complexity-reports >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Initialize octocov datastore
+        if: >-
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          steps.octocov-datastore.outputs.exists == 'false'
+        run: |
+          tmpdir=$(mktemp -d)
+          git worktree add --detach "$tmpdir" HEAD
+          (
+            cd "$tmpdir"
+            git switch --orphan octocov/complexity-reports
+            git rm -rf .
+            printf '# Octocov complexity reports\n' > README.md
+            git add README.md
+            git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m 'Initialize octocov complexity datastore'
+            git push origin HEAD:octocov/complexity-reports
+          )
+          git worktree remove "$tmpdir"
+
       - name: Run octocov
-        continue-on-error: true
+        if: >-
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          steps.octocov-datastore.outputs.exists == 'true'
         uses: k1LoW/octocov-action@v1.5.1
         with:
           config: .octocov.complexity.yml
