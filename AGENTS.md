@@ -6,7 +6,8 @@ These instructions apply to the entire repository. They outline expectations for
 ## General contribution expectations
 - Run `gofmt` and `goimports` on all touched files. Prefer standard library over external dependencies unless a clear benefit is documented in the PR description.
 - Keep changes small and focused. New files should include package-level comments where it improves clarity.
-- Tests are required for new behavior; add table-driven tests when practical. Before running tests, contributors must run the static analysis and linter checks introduced in this repository (`golangci-lint run ./...` and the cccc/Octocov workflow path where applicable), then run `go test ./...` before submitting.
+- Static analysis and linter checks must run before tests; use the checks introduced in this repository (`golangci-lint run ./...` and the cccc/Octocov workflow path where applicable).
+- Tests are required for new behavior; add table-driven tests when practical. After static analysis and linter checks pass, run `go test ./...` before submitting.
 - PR descriptions should include: a one-line summary, a short bullet list of changes, and notes on testing commands that were run.
 - Avoid try/catch equivalents around imports; imports should fail fast.
 
