@@ -44,7 +44,7 @@ func (f Formatter) Render(data formatter.RenderData) (string, error) {
 
 	for _, table := range data.Tables {
 
-		builder.WriteString(fmt.Sprintf("    %s {\n", table.Name))
+		_, _ = fmt.Fprintf(&builder, "    %s {\n", table.Name)
 
 		for _, column := range table.Columns {
 			keyConstraints := []string{}
@@ -118,10 +118,10 @@ func (f Formatter) Render(data formatter.RenderData) (string, error) {
 	})
 
 	for _, rel := range relationships {
-		builder.WriteString(fmt.Sprintf("    %s ||--o{ %s : \"%s\"\n",
+		_, _ = fmt.Fprintf(&builder, "    %s ||--o{ %s : \"%s\"\n",
 			rel.SourceTable,
 			rel.TargetTable,
-			rel.RelationName))
+			rel.RelationName)
 	}
 
 	return builder.String(), nil

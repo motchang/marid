@@ -1,0 +1,9 @@
+# Measure Go code only. Thresholds are intentionally omitted so this workflow
+# tracks complexity trends without failing CI on the initial rollout.
+languages = ["go"]
+exclude = [
+  "coverage/**",
+  "testdata/**",
+  "internal/testsqlmock/**",
+]
+min = 1

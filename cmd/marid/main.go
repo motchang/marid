@@ -64,7 +64,7 @@ and generates Mermaid ER diagrams based on the schema.`,
 			if cfgUseMyCnf {
 				myCnfConfig, err := getMyCnfConfig()
 				if err != nil {
-					fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Could not read .my.cnf: %v\n", err)
+					_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Could not read .my.cnf: %v\n", err)
 				} else {
 					cfg = *config.MergeWithCommandLineConfig(myCnfConfig, &cmdConfig)
 				}
