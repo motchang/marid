@@ -87,6 +87,14 @@ Full walkthrough with a PlantUML skeleton: README.md's "Formatter Development Gu
 marid -H localhost -P 3306 -u root -p password -d ecommerce > testdata/expected/ecommerce.mmd
 ```
 
+## Checking PR comments
+
+When asked to check comments on a PR, fetch both kinds — they come from different APIs and neither call surfaces the other:
+- Top-level/issue comments (`pull_request_read` with `method: get_comments`) — e.g. the octocov coverage/complexity bot comments.
+- Inline review comments (`pull_request_read` with `method: get_review_comments`) — e.g. line-anchored feedback from review bots like chatgpt-codex-connector, posted as part of a review on the Files Changed tab.
+
+A comment can also simply not exist yet at check time — re-check if the user says there's a comment you didn't find.
+
 ## Conventions (from AGENTS.md)
 
 - Business logic belongs in `internal/`/`pkg/`; keep `cmd/marid` limited to flag wiring.
