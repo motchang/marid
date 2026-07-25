@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
+
 	"github.com/motchang/marid/internal/config"
 )
 
@@ -42,6 +44,39 @@ func (s *stubDB) SetConnMaxLifetime(d time.Duration) {
 
 func (s *stubDB) SQLDB() *sql.DB {
 	return &sql.DB{}
+}
+
+func TestWrappedDBDelegatesToUnderlyingSQLDB(t *testing.T) {
+	mockDB, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+
+	w := &wrappedDB{DB: mockDB}
+
+	if got := w.SQLDB(); got != mockDB {
+		t.Fatalf("SQLDB() returned a different *sql.DB than the one it wraps")
+	}
+
+	w.SetMaxOpenConns(7)
+	w.SetMaxIdleConns(3)
+	w.SetConnMaxLifetime(2 * time.Minute)
+
+	if stats := mockDB.Stats(); stats.MaxOpenConnections != 7 {
+		t.Fatalf("expected SetMaxOpenConns to apply to the underlying db, got MaxOpenConnections=%d", stats.MaxOpenConnections)
+	}
+
+	if err := w.Ping(); err != nil {
+		t.Fatalf("expected Ping to succeed, got %v", err)
+	}
+
+	if err := w.Close(); err != nil {
+		t.Fatalf("expected Close to succeed, got %v", err)
+	}
+
+	if pingErr := mockDB.Ping(); pingErr == nil {
+		t.Fatalf("expected the underlying db to be closed after wrappedDB.Close()")
+	}
 }
 
 func TestConnectConfiguresDatabase(t *testing.T) {
