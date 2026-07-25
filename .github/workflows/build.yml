@@ -31,7 +31,19 @@ jobs:
     - name: Run tests
       run: |
         mkdir -p coverage
-        go test -coverpkg=./... ./... -v -coverprofile=coverage/coverage.out -timeout=5m
+        # -coverpkg takes an explicit package list rather than ./...: that pattern
+        # walks into internal/testsqlmock, which the go-sqlmock replace directive
+        # points at, and measures the test double as if it were product code.
+        # go list ./... omits it because it is a separate module.
+        #
+        # -count=1 disables the test result cache. Under -coverpkg every test
+        # binary emits block definitions for packages it does not even link, and
+        # those are not part of the cache key, so a cache restored from an older
+        # commit replays the previous layout of any file changed since. The merged
+        # profile then holds two incompatible block sets per file and counts both
+        # in the denominator.
+        go test -coverpkg="$(go list ./... | paste -sd, -)" ./... -v \
+          -count=1 -coverprofile=coverage/coverage.out -timeout=5m
 
     - name: Verify coverage threshold
       run: |

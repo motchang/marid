@@ -49,7 +49,7 @@ Please follow our [Code of Conduct](CODE_OF_CONDUCT.md) in all your interactions
 
 ### Coverage
 
-- To verify coverage locally, generate a profile with `go test -coverpkg=./... ./... -v -coverprofile=coverage/coverage.out -timeout=5m` and an HTML report with `go tool cover -html=coverage/coverage.out -o coverage/coverage.html`.
+- To verify coverage locally, generate a profile with `go test -coverpkg="$(go list ./... | paste -sd, -)" ./... -v -count=1 -coverprofile=coverage/coverage.out -timeout=5m` and an HTML report with `go tool cover -html=coverage/coverage.out -o coverage/coverage.html`.
 - `./scripts/check-coverage-threshold.sh coverage/coverage.out 30` fails fast when total coverage drops below the CI threshold, and `./scripts/coverage-summary.sh coverage/coverage.out` prints the aggregate percentage for quick checks.
 - CI uploads the `coverage/` directory (including `coverage/coverage.out` and `coverage/coverage.html`) as a build artifact and runs [octocov](https://github.com/k1LoW/octocov) (configured in `.octocov.yml`) to post the coverage report as a PR comment and track coverage over time on the default branch, the same way `.octocov.complexity.yml` reports the cccc complexity metrics.
 - Remove generated coverage outputs with `rm -rf coverage` when you are done.
