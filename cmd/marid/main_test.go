@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
+
 	"github.com/motchang/marid/internal/config"
 	"github.com/motchang/marid/internal/database"
 	"github.com/motchang/marid/internal/diagram"
@@ -288,6 +290,67 @@ func TestSuccessfulExecutionWithExplicitMermaidFormat(t *testing.T) {
 
 	if !strings.Contains(stdout.String(), "mermaid-diagram-output") {
 		t.Fatalf("expected mermaid diagram output, got %q", stdout.String())
+	}
+}
+
+func TestNoPasswordFlagClearsPassword(t *testing.T) {
+	resetGlobals()
+	t.Cleanup(resetGlobals)
+
+	var received config.Config
+	connect = func(cfg config.Config) (*sql.DB, error) {
+		received = cfg
+		return nil, errors.New("stop connect")
+	}
+
+	cmd := buildRootCmd()
+	cmd.SetArgs([]string{"--database", "cli-db", "--password", "cli-pass", "--no-password"})
+
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "failed to connect") {
+		t.Fatalf("expected connect error, got %v", err)
+	}
+
+	if received.Password != "" {
+		t.Fatalf("expected password to be cleared by --no-password, got %q", received.Password)
+	}
+}
+
+func TestSuccessfulExecutionClosesNonNilDB(t *testing.T) {
+	resetGlobals()
+	t.Cleanup(resetGlobals)
+
+	mockDB, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+
+	connect = func(cfg config.Config) (*sql.DB, error) {
+		return mockDB, nil
+	}
+
+	extract = func(db *sql.DB, cfg config.Config) (*schema.DatabaseSchema, error) {
+		if db != mockDB {
+			t.Fatalf("expected extract to receive the connected db")
+		}
+		return &schema.DatabaseSchema{Config: cfg}, nil
+	}
+
+	generate = func(dbSchema *schema.DatabaseSchema, format string) (string, error) {
+		return "diagram-output", nil
+	}
+
+	cmd := buildRootCmd()
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetArgs([]string{"--database", "cli-db"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("expected successful execution, got %v", err)
+	}
+
+	if pingErr := mockDB.Ping(); pingErr == nil || !strings.Contains(pingErr.Error(), "database is closed") {
+		t.Fatalf("expected db to be closed by the deferred Close call, ping err: %v", pingErr)
 	}
 }
 
