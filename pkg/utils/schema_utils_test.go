@@ -19,14 +19,23 @@ func TestSanitizeIdentifier(t *testing.T) {
 
 func TestFormatColumnType(t *testing.T) {
 	cases := map[string]string{
-		"int":       "integer",
-		"SMALLINT":  "integer",
-		"double":    "float",
-		"varchar":   "string",
-		"timestamp": "datetime",
-		"date":      "date",
-		"json":      "json",
-		"custom":    "custom",
+		"int":        "integer",
+		"SMALLINT":   "integer",
+		"double":     "float",
+		"varchar":    "string",
+		"timestamp":  "datetime",
+		"date":       "date",
+		"time":       "time",
+		"blob":       "blob",
+		"TINYBLOB":   "blob",
+		"mediumblob": "blob",
+		"longblob":   "blob",
+		"boolean":    "boolean",
+		"BOOL":       "boolean",
+		"enum":       "enum",
+		"set":        "enum",
+		"json":       "json",
+		"custom":     "custom",
 	}
 
 	for input, expected := range cases {
