@@ -13,31 +13,41 @@ func SanitizeIdentifier(identifier string) string {
 	return sanitized
 }
 
+// columnTypeDisplayNames maps common MySQL types to more readable formats.
+var columnTypeDisplayNames = map[string]string{
+	"int":        "integer",
+	"tinyint":    "integer",
+	"smallint":   "integer",
+	"mediumint":  "integer",
+	"bigint":     "integer",
+	"float":      "float",
+	"double":     "float",
+	"decimal":    "float",
+	"varchar":    "string",
+	"char":       "string",
+	"text":       "string",
+	"tinytext":   "string",
+	"mediumtext": "string",
+	"longtext":   "string",
+	"datetime":   "datetime",
+	"timestamp":  "datetime",
+	"date":       "date",
+	"time":       "time",
+	"blob":       "blob",
+	"tinyblob":   "blob",
+	"mediumblob": "blob",
+	"longblob":   "blob",
+	"boolean":    "boolean",
+	"bool":       "boolean",
+	"enum":       "enum",
+	"set":        "enum",
+	"json":       "json",
+}
+
 // FormatColumnType formats a column type for display
 func FormatColumnType(dataType string) string {
-	// Map common MySQL types to more readable formats
-	switch strings.ToLower(dataType) {
-	case "int", "tinyint", "smallint", "mediumint", "bigint":
-		return "integer"
-	case "float", "double", "decimal":
-		return "float"
-	case "varchar", "char", "text", "tinytext", "mediumtext", "longtext":
-		return "string"
-	case "datetime", "timestamp":
-		return "datetime"
-	case "date":
-		return "date"
-	case "time":
-		return "time"
-	case "blob", "tinyblob", "mediumblob", "longblob":
-		return "blob"
-	case "boolean", "bool":
-		return "boolean"
-	case "enum", "set":
-		return "enum"
-	case "json":
-		return "json"
-	default:
-		return dataType
+	if display, ok := columnTypeDisplayNames[strings.ToLower(dataType)]; ok {
+		return display
 	}
+	return dataType
 }

@@ -26,6 +26,7 @@ golangci-lint run ./...
 
 # Measure code complexity (matches CI's cccc job)
 # requires https://github.com/moznion/cccc
+cccc --config .cccc.toml .
 
 # Coverage, matching the CI build.yml job
 mkdir -p coverage
@@ -102,3 +103,4 @@ A comment can also simply not exist yet at check time — re-check if the user s
 - User-facing output goes to stdout, diagnostics to stderr.
 - Table-driven tests are preferred; use golden files under `testdata/` for stable text output.
 - `gofmt`/`goimports` on all touched files.
+- Before finishing any change, run `cccc --config .cccc.toml .` and check the result against the thresholds defined in `.cccc.toml` — CI's `complexity` job fails the build on a breach, so refactor any function you touched or introduced that exceeds them rather than leaving it for CI to catch.

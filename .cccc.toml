@@ -1,9 +1,17 @@
-# Measure Go code only. Thresholds are intentionally omitted so this workflow
-# tracks complexity trends without failing CI on the initial rollout.
+# Measure Go code only. Test files are excluded from the thresholds below:
+# table-driven tests and Go's sequential err-check style naturally score
+# higher without being hard to follow, so gating on them would flag idiomatic
+# test code rather than real complexity.
 languages = ["go"]
 exclude = [
   "coverage/**",
   "testdata/**",
   "internal/testsqlmock/**",
+  "*_test.go",
 ]
 min = 1
+
+# CI gate: fail the build if any production function exceeds these. Values
+# follow common industry defaults (e.g. SonarQube's cognitive-complexity gate).
+max-cognitive = 15
+max-cyclomatic = 10
