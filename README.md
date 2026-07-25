@@ -54,6 +54,26 @@ Options:
 Note: `-h` is reserved for help output; use `-H` for the host shorthand.
 ```
 
+`--password`, `--ask-password` and `--no-password` name contradictory sources for
+the same value, so combining any of them is rejected:
+
+```console
+$ marid -d mydatabase -p secret --no-password
+Error: conflicting password flags: --password, --no-password; specify only one
+```
+
+A boolean flag set to `false` selects nothing and so never conflicts, which keeps
+templated invocations working:
+
+```console
+$ marid -d mydatabase -p secret --no-password=false   # fine, uses -p
+```
+
+Combining one of them with `--use-mycnf` is also allowed, since overriding a
+password that came from `~/.my.cnf` is an override rather than a contradiction —
+`--ask-password` prompts instead of using the file's password, and
+`--no-password` discards it.
+
 ### Output formats
 
 - Mermaid is the default formatter.
