@@ -30,7 +30,7 @@ cccc --config .cccc.toml .
 
 # Coverage, matching the CI build.yml job
 mkdir -p coverage
-go test -coverpkg=./... ./... -v -coverprofile=coverage/coverage.out -timeout=5m
+go test -coverpkg="$(go list ./... | paste -sd, -)" ./... -v -count=1 -coverprofile=coverage/coverage.out -timeout=5m
 go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 ./scripts/check-coverage-threshold.sh coverage/coverage.out 30   # CI fails below 30%
 ./scripts/coverage-summary.sh coverage/coverage.out               # prints just the % total
