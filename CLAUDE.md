@@ -103,4 +103,4 @@ A comment can also simply not exist yet at check time — re-check if the user s
 - User-facing output goes to stdout, diagnostics to stderr.
 - Table-driven tests are preferred; use golden files under `testdata/` for stable text output.
 - `gofmt`/`goimports` on all touched files.
-- Before finishing any change, check `cccc --config .cccc.toml .` against the thresholds in `.cccc.toml` (`max-cognitive = 15`, `max-cyclomatic = 10`, non-test Go code only) — CI's `complexity` job fails the build on a breach, so refactor any function you touched or introduced that exceeds them rather than leaving it for CI to catch.
+- Before finishing any change, run `cccc --config .cccc.toml .` and check the result against the thresholds defined in `.cccc.toml` — CI's `complexity` job fails the build on a breach, so refactor any function you touched or introduced that exceeds them rather than leaving it for CI to catch.
