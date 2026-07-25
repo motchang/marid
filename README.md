@@ -59,13 +59,20 @@ the same value, so combining any of them is rejected:
 
 ```console
 $ marid -d mydatabase -p secret --no-password
-Error: if any flags in the group [password no-password ask-password] are set none of the others can be; [no-password password] were all set
+Error: conflicting password flags: --password, --no-password; specify only one
 ```
 
-This applies to flags given on the command line. Combining one of them with
-`--use-mycnf` is still allowed, since overriding a password that came from
-`~/.my.cnf` is an override rather than a contradiction — `--ask-password`
-prompts instead of using the file's password, and `--no-password` discards it.
+A boolean flag set to `false` selects nothing and so never conflicts, which keeps
+templated invocations working:
+
+```console
+$ marid -d mydatabase -p secret --no-password=false   # fine, uses -p
+```
+
+Combining one of them with `--use-mycnf` is also allowed, since overriding a
+password that came from `~/.my.cnf` is an override rather than a contradiction —
+`--ask-password` prompts instead of using the file's password, and
+`--no-password` discards it.
 
 ### Output formats
 

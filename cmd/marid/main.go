@@ -108,20 +108,51 @@ and generates Mermaid ER diagrams based on the schema.`,
 	rootCmd.Flags().StringVarP(&cfgTables, "tables", "t", "", "Comma-separated list of tables (default: all tables)")
 	rootCmd.Flags().StringVarP(&cfgFormat, "format", "f", formatter.DefaultFormat, formatDesc)
 
-	// The three password flags name contradictory sources for the same value, so
-	// reject any combination of them rather than resolving one silently. This
-	// keys off flags actually given on the command line, which deliberately
-	// leaves --use-mycnf alone: a password read from ~/.my.cnf plus an explicit
-	// --ask-password or --no-password is an override, not a contradiction.
-	rootCmd.MarkFlagsMutuallyExclusive("password", "no-password", "ask-password")
-
 	return rootCmd
+}
+
+// passwordFlagConflict lists the password flags the user selected when more than
+// one of them is in play, and nil otherwise. The three name contradictory
+// sources for one value, so combining them is rejected rather than resolved by a
+// silent precedence.
+//
+// Booleans are judged by value, not by whether they were provided: cobra's
+// MarkFlagsMutuallyExclusive would do the latter, and pflag records
+// --no-password=false as set, so an explicitly disabled flag would count as a
+// conflict. --use-mycnf is deliberately not a member — a password read from
+// ~/.my.cnf combined with --ask-password or --no-password is an override rather
+// than a contradiction.
+func passwordFlagConflict(cmd *cobra.Command) []string {
+	var selected []string
+
+	if cmd.Flags().Changed("password") {
+		selected = append(selected, "--password")
+	}
+
+	if cfgNoPassword {
+		selected = append(selected, "--no-password")
+	}
+
+	if cfgPromptPass {
+		selected = append(selected, "--ask-password")
+	}
+
+	if len(selected) < 2 {
+		return nil
+	}
+
+	return selected
 }
 
 // resolveConfig merges ~/.my.cnf settings (when requested) into cmdConfig,
 // validates the result, and applies password overrides.
 func resolveConfig(cmd *cobra.Command, cmdConfig config.Config) (config.Config, error) {
 	cfg := cmdConfig
+
+	if conflicting := passwordFlagConflict(cmd); conflicting != nil {
+		return cfg, fmt.Errorf("conflicting password flags: %s; specify only one",
+			strings.Join(conflicting, ", "))
+	}
 
 	if cfgUseMyCnf {
 		myCnfConfig, err := getMyCnfConfig()

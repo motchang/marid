@@ -410,26 +410,49 @@ func TestConflictingPasswordFlagsAreRejected(t *testing.T) {
 	tests := []struct {
 		name string
 		args []string
+		// wantNamed are the flags the message must blame; wantAbsent are the
+		// flags it must not, so an unrelated flag is never reported at fault.
+		wantNamed  []string
+		wantAbsent []string
 	}{
 		{
-			name: "explicit password and no-password",
-			args: []string{"--database", "cli-db", "--password", "cli-pass", "--no-password"},
+			name:       "explicit password and no-password",
+			args:       []string{"--database", "cli-db", "--password", "cli-pass", "--no-password"},
+			wantNamed:  []string{"--password", "--no-password"},
+			wantAbsent: []string{"--ask-password"},
 		},
 		{
-			name: "explicit password and ask-password",
-			args: []string{"--database", "cli-db", "--password", "cli-pass", "--ask-password"},
+			name:       "explicit password and ask-password",
+			args:       []string{"--database", "cli-db", "--password", "cli-pass", "--ask-password"},
+			wantNamed:  []string{"--password", "--ask-password"},
+			wantAbsent: []string{"--no-password"},
 		},
 		{
-			name: "no-password and ask-password",
-			args: []string{"--database", "cli-db", "--no-password", "--ask-password"},
+			name:       "no-password and ask-password",
+			args:       []string{"--database", "cli-db", "--no-password", "--ask-password"},
+			wantNamed:  []string{"--no-password", "--ask-password"},
+			wantAbsent: []string{"--password,"},
 		},
 		{
-			name: "all three at once",
-			args: []string{"--database", "cli-db", "--password", "cli-pass", "--no-password", "--ask-password"},
+			name:      "all three at once",
+			args:      []string{"--database", "cli-db", "--password", "cli-pass", "--no-password", "--ask-password"},
+			wantNamed: []string{"--password", "--no-password", "--ask-password"},
 		},
 		{
-			name: "shorthand forms conflict too",
-			args: []string{"-d", "cli-db", "-p", "cli-pass", "-n"},
+			name:       "shorthand forms conflict too",
+			args:       []string{"-d", "cli-db", "-p", "cli-pass", "-n"},
+			wantNamed:  []string{"--password", "--no-password"},
+			wantAbsent: []string{"--ask-password"},
+		},
+		{
+			name:      "an explicitly enabled boolean still conflicts",
+			args:      []string{"--database", "cli-db", "--password", "cli-pass", "--no-password=true"},
+			wantNamed: []string{"--password", "--no-password"},
+		},
+		{
+			name:      "an empty explicit password is still a password source",
+			args:      []string{"--database", "cli-db", "--password", "", "--no-password"},
+			wantNamed: []string{"--password", "--no-password"},
 		},
 	}
 
@@ -462,9 +485,15 @@ func TestConflictingPasswordFlagsAreRejected(t *testing.T) {
 			}
 
 			// The message must name the flags at fault to be actionable.
-			for _, want := range []string{"password", "no-password", "ask-password"} {
+			for _, want := range tt.wantNamed {
 				if !strings.Contains(err.Error(), want) {
 					t.Errorf("error should name %q, got %v", want, err)
+				}
+			}
+
+			for _, unwanted := range tt.wantAbsent {
+				if strings.Contains(err.Error(), unwanted) {
+					t.Errorf("error should not blame %q, got %v", unwanted, err)
 				}
 			}
 
@@ -510,6 +539,24 @@ func TestNonConflictingPasswordFlagsAreAccepted(t *testing.T) {
 		{
 			name:         "no-password discards a my.cnf password",
 			args:         []string{"--use-mycnf", "--database", "cli-db", "--no-password"},
+			wantPassword: "",
+		},
+		// A boolean flag set to false is inert, so these are not conflicts even
+		// though pflag records the flag as having been changed. Templated
+		// invocations such as --no-password=$SKIP_PASSWORD depend on this.
+		{
+			name:         "explicitly disabled no-password leaves the password alone",
+			args:         []string{"--database", "cli-db", "--password", "cli-pass", "--no-password=false"},
+			wantPassword: "cli-pass",
+		},
+		{
+			name:         "explicitly disabled ask-password leaves the password alone",
+			args:         []string{"--database", "cli-db", "--password", "cli-pass", "--ask-password=false"},
+			wantPassword: "cli-pass",
+		},
+		{
+			name:         "both booleans explicitly disabled selects no password source",
+			args:         []string{"--database", "cli-db", "--no-password=false", "--ask-password=false"},
 			wantPassword: "",
 		},
 	}
