@@ -108,6 +108,13 @@ and generates Mermaid ER diagrams based on the schema.`,
 	rootCmd.Flags().StringVarP(&cfgTables, "tables", "t", "", "Comma-separated list of tables (default: all tables)")
 	rootCmd.Flags().StringVarP(&cfgFormat, "format", "f", formatter.DefaultFormat, formatDesc)
 
+	// The three password flags name contradictory sources for the same value, so
+	// reject any combination of them rather than resolving one silently. This
+	// keys off flags actually given on the command line, which deliberately
+	// leaves --use-mycnf alone: a password read from ~/.my.cnf plus an explicit
+	// --ask-password or --no-password is an override, not a contradiction.
+	rootCmd.MarkFlagsMutuallyExclusive("password", "no-password", "ask-password")
+
 	return rootCmd
 }
 

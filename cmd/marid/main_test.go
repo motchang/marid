@@ -149,6 +149,9 @@ func TestUseMyCnfMergeFailure(t *testing.T) {
 	}
 }
 
+// TestAskPasswordOverrides also covers the deliberate carve-out in the
+// mutually-exclusive password group: --ask-password conflicts with an explicit
+// --password, but overriding a password that came from ~/.my.cnf is allowed.
 func TestAskPasswordOverrides(t *testing.T) {
 	resetGlobals()
 	t.Cleanup(resetGlobals)
@@ -170,7 +173,7 @@ func TestAskPasswordOverrides(t *testing.T) {
 	}
 
 	cmd := buildRootCmd()
-	cmd.SetArgs([]string{"--use-mycnf", "--password", "cli-pass", "--database", "cli-db", "--ask-password"})
+	cmd.SetArgs([]string{"--use-mycnf", "--database", "cli-db", "--ask-password"})
 
 	err := cmd.Execute()
 	if err == nil || !strings.Contains(err.Error(), "failed to connect") {
@@ -293,9 +296,16 @@ func TestSuccessfulExecutionWithExplicitMermaidFormat(t *testing.T) {
 	}
 }
 
+// TestNoPasswordFlagClearsPassword covers the remaining job of --no-password now
+// that pairing it with an explicit --password is rejected: discarding a password
+// that arrived from ~/.my.cnf.
 func TestNoPasswordFlagClearsPassword(t *testing.T) {
 	resetGlobals()
 	t.Cleanup(resetGlobals)
+
+	getMyCnfConfig = func() (*config.MySQLConfig, error) {
+		return &config.MySQLConfig{Password: "mycnf-pass", Database: "file-db"}, nil
+	}
 
 	var received config.Config
 	connect = func(cfg config.Config) (*sql.DB, error) {
@@ -304,7 +314,7 @@ func TestNoPasswordFlagClearsPassword(t *testing.T) {
 	}
 
 	cmd := buildRootCmd()
-	cmd.SetArgs([]string{"--database", "cli-db", "--password", "cli-pass", "--no-password"})
+	cmd.SetArgs([]string{"--use-mycnf", "--database", "cli-db", "--no-password"})
 
 	err := cmd.Execute()
 	if err == nil || !strings.Contains(err.Error(), "failed to connect") {
@@ -392,48 +402,150 @@ func TestAskPasswordPromptError(t *testing.T) {
 	}
 }
 
-// TestNoPasswordTakesPrecedenceOverAskPassword records what marid does today
-// with a contradictory combination of password flags: --no-password
-// short-circuits the prompt entirely rather than prompting and then discarding
-// the result.
-//
-// This documents the behavior, it does not endorse it. AGENTS.md's CLI guidance
-// ("reject conflicting or ambiguous flags with clear errors") argues
-// resolveConfig should refuse the combination outright instead of resolving it
-// silently. That is a user-facing behavior change and out of scope here; until
-// it happens, making the precedence explicit means a future validation change
-// has to update this test deliberately rather than shifting behavior unnoticed.
-func TestNoPasswordTakesPrecedenceOverAskPassword(t *testing.T) {
-	resetGlobals()
-	t.Cleanup(resetGlobals)
-
-	promptCalled := false
-	promptForPassword = func() (string, error) {
-		promptCalled = true
-		return "prompt-pass", nil
+// TestConflictingPasswordFlagsAreRejected covers AGENTS.md's requirement to
+// reject conflicting or ambiguous flags with clear errors. The three password
+// flags name contradictory sources for one value, so no pair of them is allowed,
+// and the command must fail before prompting or connecting.
+func TestConflictingPasswordFlagsAreRejected(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "explicit password and no-password",
+			args: []string{"--database", "cli-db", "--password", "cli-pass", "--no-password"},
+		},
+		{
+			name: "explicit password and ask-password",
+			args: []string{"--database", "cli-db", "--password", "cli-pass", "--ask-password"},
+		},
+		{
+			name: "no-password and ask-password",
+			args: []string{"--database", "cli-db", "--no-password", "--ask-password"},
+		},
+		{
+			name: "all three at once",
+			args: []string{"--database", "cli-db", "--password", "cli-pass", "--no-password", "--ask-password"},
+		},
+		{
+			name: "shorthand forms conflict too",
+			args: []string{"-d", "cli-db", "-p", "cli-pass", "-n"},
+		},
 	}
 
-	var received config.Config
-	connect = func(cfg config.Config) (*sql.DB, error) {
-		received = cfg
-		return nil, errors.New("stop connect")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetGlobals()
+			t.Cleanup(resetGlobals)
+
+			promptCalled := false
+			promptForPassword = func() (string, error) {
+				promptCalled = true
+				return "prompt-pass", nil
+			}
+
+			connectCalled := false
+			connect = func(cfg config.Config) (*sql.DB, error) {
+				connectCalled = true
+				return nil, nil
+			}
+
+			cmd := buildRootCmd()
+			var stdout, stderr bytes.Buffer
+			cmd.SetOut(&stdout)
+			cmd.SetErr(&stderr)
+			cmd.SetArgs(tt.args)
+
+			err := cmd.Execute()
+			if err == nil {
+				t.Fatalf("expected conflicting password flags to be rejected")
+			}
+
+			// The message must name the flags at fault to be actionable.
+			for _, want := range []string{"password", "no-password", "ask-password"} {
+				if !strings.Contains(err.Error(), want) {
+					t.Errorf("error should name %q, got %v", want, err)
+				}
+			}
+
+			if promptCalled {
+				t.Errorf("password prompt should not run for a rejected flag combination")
+			}
+
+			if connectCalled {
+				t.Errorf("connect should not run for a rejected flag combination")
+			}
+		})
+	}
+}
+
+// TestNonConflictingPasswordFlagsAreAccepted guards the other side of the group:
+// each password flag on its own, and the --use-mycnf carve-out, must still work.
+func TestNonConflictingPasswordFlagsAreAccepted(t *testing.T) {
+	tests := []struct {
+		name         string
+		args         []string
+		wantPassword string
+	}{
+		{
+			name:         "explicit password alone",
+			args:         []string{"--database", "cli-db", "--password", "cli-pass"},
+			wantPassword: "cli-pass",
+		},
+		{
+			name:         "no-password alone",
+			args:         []string{"--database", "cli-db", "--no-password"},
+			wantPassword: "",
+		},
+		{
+			name:         "ask-password alone",
+			args:         []string{"--database", "cli-db", "--ask-password"},
+			wantPassword: "prompt-pass",
+		},
+		{
+			name:         "ask-password overrides a my.cnf password",
+			args:         []string{"--use-mycnf", "--database", "cli-db", "--ask-password"},
+			wantPassword: "prompt-pass",
+		},
+		{
+			name:         "no-password discards a my.cnf password",
+			args:         []string{"--use-mycnf", "--database", "cli-db", "--no-password"},
+			wantPassword: "",
+		},
 	}
 
-	cmd := buildRootCmd()
-	var stderr bytes.Buffer
-	cmd.SetErr(&stderr)
-	cmd.SetArgs([]string{"--database", "cli-db", "--password", "cli-pass", "--no-password", "--ask-password"})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetGlobals()
+			t.Cleanup(resetGlobals)
 
-	if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "failed to connect") {
-		t.Fatalf("expected connect error, got %v", err)
-	}
+			getMyCnfConfig = func() (*config.MySQLConfig, error) {
+				return &config.MySQLConfig{Password: "mycnf-pass", Database: "file-db"}, nil
+			}
 
-	if promptCalled {
-		t.Errorf("expected --no-password to skip the password prompt")
-	}
+			promptForPassword = func() (string, error) {
+				return "prompt-pass", nil
+			}
 
-	if received.Password != "" {
-		t.Errorf("expected password to be cleared, got %q", received.Password)
+			var received config.Config
+			connect = func(cfg config.Config) (*sql.DB, error) {
+				received = cfg
+				return nil, errors.New("stop connect")
+			}
+
+			cmd := buildRootCmd()
+			var stderr bytes.Buffer
+			cmd.SetErr(&stderr)
+			cmd.SetArgs(tt.args)
+
+			if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "failed to connect") {
+				t.Fatalf("expected the run to reach connect, got %v", err)
+			}
+
+			if received.Password != tt.wantPassword {
+				t.Errorf("password = %q, want %q", received.Password, tt.wantPassword)
+			}
+		})
 	}
 }
 
