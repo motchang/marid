@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/motchang/marid/pkg/formatter"
+	"github.com/motchang/marid/pkg/formatter/formattertest"
 	_ "github.com/motchang/marid/pkg/formatter/mermaid"
 )
 
@@ -37,4 +38,48 @@ func TestAvailableIsSorted(t *testing.T) {
 			t.Fatalf("expected names to be sorted, got %v", names)
 		}
 	}
+}
+
+func newMockFactory() formatter.Factory {
+	return func() formatter.Formatter { return &formattertest.MockFormatter{} }
+}
+
+func expectPanic(t *testing.T, wantSubstring string, fn func()) {
+	t.Helper()
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatalf("expected panic containing %q, got none", wantSubstring)
+		}
+
+		msg, ok := r.(string)
+		if !ok || !strings.Contains(msg, wantSubstring) {
+			t.Fatalf("expected panic containing %q, got %v", wantSubstring, r)
+		}
+	}()
+
+	fn()
+}
+
+func TestRegisterPanicsOnEmptyName(t *testing.T) {
+	expectPanic(t, "formatter name cannot be empty", func() {
+		formatter.Register("", newMockFactory())
+	})
+}
+
+func TestRegisterPanicsOnNilFactory(t *testing.T) {
+	expectPanic(t, "formatter factory cannot be nil", func() {
+		formatter.Register("test-register-nil-factory", nil)
+	})
+}
+
+func TestRegisterPanicsOnDuplicateName(t *testing.T) {
+	const name = "test-register-duplicate"
+
+	formatter.Register(name, newMockFactory())
+
+	expectPanic(t, "already registered", func() {
+		formatter.Register(name, newMockFactory())
+	})
 }
