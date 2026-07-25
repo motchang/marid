@@ -3,8 +3,10 @@ name: Static Analysis
 on:
   push:
     branches: [ main ]
+  # Deliberately unfiltered: restricting to `branches: [ main ]` skips any pull
+  # request opened against another branch, so a stacked pull request gets no
+  # checks at all until its parent merges and GitHub retargets it.
   pull_request:
-    branches: [ main ]
 
 jobs:
   golangci-lint:
