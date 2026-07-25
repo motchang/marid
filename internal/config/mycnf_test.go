@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -53,6 +54,26 @@ func TestGetMyCnfConfigDefaults(t *testing.T) {
 
 	if cfg.User != "test-user" {
 		t.Fatalf("expected user 'test-user', got %q", cfg.User)
+	}
+}
+
+func TestGetMyCnfConfigMalformedFile(t *testing.T) {
+	tempDir := t.TempDir()
+	withStubUserHomeDir(t, tempDir)
+
+	myCnfPath := filepath.Join(tempDir, ".my.cnf")
+	content := []byte("[client\nhost=db.example.com\n")
+	if err := os.WriteFile(myCnfPath, content, 0o600); err != nil {
+		t.Fatalf("failed to write .my.cnf: %v", err)
+	}
+
+	_, err := GetMyCnfConfig()
+	if err == nil {
+		t.Fatalf("expected error for malformed .my.cnf")
+	}
+
+	if !strings.Contains(err.Error(), "failed to read .my.cnf file") {
+		t.Fatalf("expected wrapped ini error, got %q", err.Error())
 	}
 }
 
