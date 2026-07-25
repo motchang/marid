@@ -198,7 +198,7 @@ For richer sample data and mock usage, see [`docs/formatters/testing_template.md
 ## Coverage
 
 - Generate local coverage with `go test -coverpkg=./... ./... -v -coverprofile=coverage/coverage.out -timeout=5m` and create an HTML report with `go tool cover -html=coverage/coverage.out -o coverage/coverage.html`.
-- CI uploads the `coverage/` directory (including `coverage/coverage.out` and `coverage/coverage.html`) as an artifact and comments on PRs with the total coverage and a download link for the HTML report.
+- CI uploads the `coverage/` directory (including `coverage/coverage.out` and `coverage/coverage.html`) as an artifact and uses [octocov](https://github.com/k1LoW/octocov) (configured in `.octocov.yml`) to comment the coverage report on PRs and track coverage over time on the default branch.
 - Use `rm -rf coverage` to clean up generated coverage files when finished.
 
 ## Contributing
