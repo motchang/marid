@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"testing"
@@ -59,11 +60,53 @@ func TestWrappedDBDelegatesToUnderlyingSQLDB(t *testing.T) {
 	}
 
 	w.SetMaxOpenConns(7)
-	w.SetMaxIdleConns(3)
-	w.SetConnMaxLifetime(2 * time.Minute)
-
 	if stats := mockDB.Stats(); stats.MaxOpenConnections != 7 {
 		t.Fatalf("expected SetMaxOpenConns to apply to the underlying db, got MaxOpenConnections=%d", stats.MaxOpenConnections)
+	}
+
+	// SetMaxIdleConns closes any excess idle connections synchronously, so
+	// opening two connections and releasing them back to the pool, then
+	// lowering the idle limit below 2, gives an observable effect
+	// (Stats().MaxIdleClosed) that proves the call reached the real *sql.DB.
+	w.SetMaxIdleConns(5)
+	ctx := context.Background()
+	c1, err := mockDB.Conn(ctx)
+	if err != nil {
+		t.Fatalf("failed to acquire connection: %v", err)
+	}
+	c2, err := mockDB.Conn(ctx)
+	if err != nil {
+		t.Fatalf("failed to acquire connection: %v", err)
+	}
+	if err := c1.Close(); err != nil {
+		t.Fatalf("failed to release connection: %v", err)
+	}
+	if err := c2.Close(); err != nil {
+		t.Fatalf("failed to release connection: %v", err)
+	}
+	if stats := mockDB.Stats(); stats.Idle != 2 {
+		t.Fatalf("expected 2 idle connections before lowering the idle limit, got %d", stats.Idle)
+	}
+
+	w.SetMaxIdleConns(1)
+	if stats := mockDB.Stats(); stats.MaxIdleClosed == 0 {
+		t.Fatalf("expected SetMaxIdleConns to apply to the underlying db, no excess idle connections were closed")
+	}
+
+	// SetConnMaxLifetime only takes effect the next time a connection is
+	// reused, so set a lifetime that's already expired by the time the pool
+	// checks it and observe Stats().MaxLifetimeClosed.
+	w.SetConnMaxLifetime(time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
+	c3, err := mockDB.Conn(ctx)
+	if err != nil {
+		t.Fatalf("failed to acquire connection: %v", err)
+	}
+	if err := c3.Close(); err != nil {
+		t.Fatalf("failed to release connection: %v", err)
+	}
+	if stats := mockDB.Stats(); stats.MaxLifetimeClosed == 0 {
+		t.Fatalf("expected SetConnMaxLifetime to apply to the underlying db, no expired connections were closed")
 	}
 
 	if err := w.Ping(); err != nil {
