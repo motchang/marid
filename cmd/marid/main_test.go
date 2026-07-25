@@ -392,9 +392,17 @@ func TestAskPasswordPromptError(t *testing.T) {
 	}
 }
 
-// TestNoPasswordTakesPrecedenceOverAskPassword pins the flag precedence in
-// resolveConfig: --no-password short-circuits the prompt entirely rather than
-// prompting and then discarding the result.
+// TestNoPasswordTakesPrecedenceOverAskPassword records what marid does today
+// with a contradictory combination of password flags: --no-password
+// short-circuits the prompt entirely rather than prompting and then discarding
+// the result.
+//
+// This documents the behavior, it does not endorse it. AGENTS.md's CLI guidance
+// ("reject conflicting or ambiguous flags with clear errors") argues
+// resolveConfig should refuse the combination outright instead of resolving it
+// silently. That is a user-facing behavior change and out of scope here; until
+// it happens, making the precedence explicit means a future validation change
+// has to update this test deliberately rather than shifting behavior unnoticed.
 func TestNoPasswordTakesPrecedenceOverAskPassword(t *testing.T) {
 	resetGlobals()
 	t.Cleanup(resetGlobals)
