@@ -354,6 +354,177 @@ func TestSuccessfulExecutionClosesNonNilDB(t *testing.T) {
 	}
 }
 
+func TestAskPasswordPromptError(t *testing.T) {
+	resetGlobals()
+	t.Cleanup(resetGlobals)
+
+	promptErr := errors.New("tty unavailable")
+	promptForPassword = func() (string, error) {
+		return "", promptErr
+	}
+
+	connectCalled := false
+	connect = func(cfg config.Config) (*sql.DB, error) {
+		connectCalled = true
+		return nil, nil
+	}
+
+	cmd := buildRootCmd()
+	var stderr bytes.Buffer
+	cmd.SetErr(&stderr)
+	cmd.SetArgs([]string{"--database", "cli-db", "--ask-password"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatalf("expected error when the password prompt fails")
+	}
+
+	if !errors.Is(err, promptErr) {
+		t.Errorf("expected the prompt error to be wrapped, got %v", err)
+	}
+
+	if !strings.Contains(err.Error(), "failed to read password") {
+		t.Errorf("expected an actionable message, got %v", err)
+	}
+
+	if connectCalled {
+		t.Errorf("connect should not be called when the password prompt fails")
+	}
+}
+
+// TestNoPasswordTakesPrecedenceOverAskPassword pins the flag precedence in
+// resolveConfig: --no-password short-circuits the prompt entirely rather than
+// prompting and then discarding the result.
+func TestNoPasswordTakesPrecedenceOverAskPassword(t *testing.T) {
+	resetGlobals()
+	t.Cleanup(resetGlobals)
+
+	promptCalled := false
+	promptForPassword = func() (string, error) {
+		promptCalled = true
+		return "prompt-pass", nil
+	}
+
+	var received config.Config
+	connect = func(cfg config.Config) (*sql.DB, error) {
+		received = cfg
+		return nil, errors.New("stop connect")
+	}
+
+	cmd := buildRootCmd()
+	var stderr bytes.Buffer
+	cmd.SetErr(&stderr)
+	cmd.SetArgs([]string{"--database", "cli-db", "--password", "cli-pass", "--no-password", "--ask-password"})
+
+	if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "failed to connect") {
+		t.Fatalf("expected connect error, got %v", err)
+	}
+
+	if promptCalled {
+		t.Errorf("expected --no-password to skip the password prompt")
+	}
+
+	if received.Password != "" {
+		t.Errorf("expected password to be cleared, got %q", received.Password)
+	}
+}
+
+func TestExtractError(t *testing.T) {
+	resetGlobals()
+	t.Cleanup(resetGlobals)
+
+	extractErr := errors.New("information_schema unreadable")
+
+	mockDB, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create sqlmock: %v", err)
+	}
+
+	connect = func(cfg config.Config) (*sql.DB, error) {
+		return mockDB, nil
+	}
+
+	extract = func(db *sql.DB, cfg config.Config) (*schema.DatabaseSchema, error) {
+		return nil, extractErr
+	}
+
+	generateCalled := false
+	generate = func(dbSchema *schema.DatabaseSchema, format string) (string, error) {
+		generateCalled = true
+		return "", nil
+	}
+
+	cmd := buildRootCmd()
+	var stderr bytes.Buffer
+	cmd.SetErr(&stderr)
+	cmd.SetArgs([]string{"--database", "cli-db"})
+
+	err = cmd.Execute()
+	if err == nil {
+		t.Fatalf("expected error when schema extraction fails")
+	}
+
+	if !errors.Is(err, extractErr) {
+		t.Errorf("expected the extract error to be wrapped, got %v", err)
+	}
+
+	if !strings.Contains(err.Error(), "failed to extract schema") {
+		t.Errorf("expected an actionable message, got %v", err)
+	}
+
+	if generateCalled {
+		t.Errorf("generate should not be called after extraction fails")
+	}
+
+	if pingErr := mockDB.Ping(); pingErr == nil || !strings.Contains(pingErr.Error(), "database is closed") {
+		t.Errorf("expected db to be closed on the error path, ping err: %v", pingErr)
+	}
+}
+
+// failingWriter stands in for a stdout that cannot be written to, e.g. a closed
+// pipe when marid's output is piped into a command that exits early.
+type failingWriter struct {
+	err error
+}
+
+func (w failingWriter) Write([]byte) (int, error) {
+	return 0, w.err
+}
+
+func TestOutputWriteErrorIsReturned(t *testing.T) {
+	resetGlobals()
+	t.Cleanup(resetGlobals)
+
+	writeErr := errors.New("broken pipe")
+
+	connect = func(cfg config.Config) (*sql.DB, error) {
+		return nil, nil
+	}
+
+	extract = func(db *sql.DB, cfg config.Config) (*schema.DatabaseSchema, error) {
+		return &schema.DatabaseSchema{Config: cfg}, nil
+	}
+
+	generate = func(dbSchema *schema.DatabaseSchema, format string) (string, error) {
+		return "diagram-output", nil
+	}
+
+	cmd := buildRootCmd()
+	var stderr bytes.Buffer
+	cmd.SetOut(failingWriter{err: writeErr})
+	cmd.SetErr(&stderr)
+	cmd.SetArgs([]string{"--database", "cli-db"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatalf("expected the diagram write error to be reported")
+	}
+
+	if !errors.Is(err, writeErr) {
+		t.Errorf("expected the write error to be returned, got %v", err)
+	}
+}
+
 func TestUnknownFormatError(t *testing.T) {
 	resetGlobals()
 	t.Cleanup(resetGlobals)
