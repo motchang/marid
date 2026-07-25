@@ -41,74 +41,87 @@ func (f Formatter) Render(data formatter.RenderData) (string, error) {
 	var builder strings.Builder
 
 	builder.WriteString("erDiagram\n")
+	writeTables(&builder, data.Tables)
+	writeRelationships(&builder, buildRelationships(data.Tables))
 
-	for _, table := range data.Tables {
+	return builder.String(), nil
+}
 
-		_, _ = fmt.Fprintf(&builder, "    %s {\n", table.Name)
+func writeTables(builder *strings.Builder, tables []formatter.Table) {
+	for _, table := range tables {
+		_, _ = fmt.Fprintf(builder, "    %s {\n", table.Name)
 
 		for _, column := range table.Columns {
-			keyConstraints := []string{}
-
-			isPrimary := contains(table.PrimaryKey, column.Name)
-			if isPrimary {
-				keyConstraints = append(keyConstraints, "PK")
-			}
-
-			for _, fk := range table.ForeignKeys {
-				if fk.ColumnName == column.Name {
-					keyConstraints = append(keyConstraints, "FK")
-					break
-				}
-			}
-
-			if column.IsUnique && !isPrimary {
-				keyConstraints = append(keyConstraints, "UK")
-			}
-
-			attrLine := fmt.Sprintf("        %s %s", column.Name, column.DataType)
-
-			if len(keyConstraints) > 0 {
-				attrLine += " " + strings.Join(keyConstraints, ", ")
-			}
-
-			if column.Comment != "" {
-				attrLine += fmt.Sprintf(" \"%s\"", column.Comment)
-			}
-
-			builder.WriteString(attrLine + "\n")
+			builder.WriteString(columnAttrLine(table, column) + "\n")
 		}
+
 		builder.WriteString("    }\n")
 	}
+}
 
-	type relationship struct {
-		SourceTable      string
-		TargetTable      string
-		RelationName     string
-		CrossingDistance int
+func columnAttrLine(table formatter.Table, column formatter.Column) string {
+	attrLine := fmt.Sprintf("        %s %s", column.Name, column.DataType)
+
+	if keyConstraints := columnKeyConstraints(table, column); len(keyConstraints) > 0 {
+		attrLine += " " + strings.Join(keyConstraints, ", ")
 	}
 
-	var relationships []relationship
+	if column.Comment != "" {
+		attrLine += fmt.Sprintf(" \"%s\"", column.Comment)
+	}
 
+	return attrLine
+}
+
+func columnKeyConstraints(table formatter.Table, column formatter.Column) []string {
+	keyConstraints := []string{}
+
+	isPrimary := contains(table.PrimaryKey, column.Name)
+	if isPrimary {
+		keyConstraints = append(keyConstraints, "PK")
+	}
+
+	for _, fk := range table.ForeignKeys {
+		if fk.ColumnName == column.Name {
+			keyConstraints = append(keyConstraints, "FK")
+			break
+		}
+	}
+
+	if column.IsUnique && !isPrimary {
+		keyConstraints = append(keyConstraints, "UK")
+	}
+
+	return keyConstraints
+}
+
+// relationship is a foreign-key edge rendered as a Mermaid ER relationship line.
+type relationship struct {
+	SourceTable      string
+	TargetTable      string
+	RelationName     string
+	CrossingDistance int
+}
+
+// buildRelationships collects every foreign key across tables as a
+// relationship, sorted by crossing distance so closely related tables are
+// rendered near each other.
+func buildRelationships(tables []formatter.Table) []relationship {
 	tablePositions := make(map[string]int)
-	for i, table := range data.Tables {
+	for i, table := range tables {
 		tablePositions[table.Name] = i
 	}
 
-	for _, table := range data.Tables {
+	var relationships []relationship
+	for _, table := range tables {
+		targetPos, targetExists := tablePositions[table.Name]
+
 		for _, fk := range table.ForeignKeys {
-			sourcePos, sourceExists := tablePositions[fk.ReferencedTable]
-			targetPos, targetExists := tablePositions[table.Name]
-
-			crossingDistance := 0
-			if sourceExists && targetExists {
-				crossingDistance = abs(sourcePos - targetPos)
-			}
-
 			relationships = append(relationships, relationship{
 				SourceTable:      fk.ReferencedTable,
 				TargetTable:      table.Name,
 				RelationName:     fk.RelationName,
-				CrossingDistance: crossingDistance,
+				CrossingDistance: crossingDistance(tablePositions, fk.ReferencedTable, targetPos, targetExists),
 			})
 		}
 	}
@@ -117,14 +130,24 @@ func (f Formatter) Render(data formatter.RenderData) (string, error) {
 		return relationships[i].CrossingDistance < relationships[j].CrossingDistance
 	})
 
+	return relationships
+}
+
+func crossingDistance(tablePositions map[string]int, sourceTable string, targetPos int, targetExists bool) int {
+	sourcePos, sourceExists := tablePositions[sourceTable]
+	if !sourceExists || !targetExists {
+		return 0
+	}
+	return abs(sourcePos - targetPos)
+}
+
+func writeRelationships(builder *strings.Builder, relationships []relationship) {
 	for _, rel := range relationships {
-		_, _ = fmt.Fprintf(&builder, "    %s ||--o{ %s : \"%s\"\n",
+		_, _ = fmt.Fprintf(builder, "    %s ||--o{ %s : \"%s\"\n",
 			rel.SourceTable,
 			rel.TargetTable,
 			rel.RelationName)
 	}
-
-	return builder.String(), nil
 }
 
 func contains(values []string, target string) bool {

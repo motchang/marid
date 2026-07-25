@@ -39,6 +39,13 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Measure complexity (cccc)
+        id: cccc
+        # Thresholds (max-cognitive / max-cyclomatic) live in .cccc.toml; cccc
+        # exits non-zero when a function breaches them. continue-on-error lets
+        # the summary/octocov steps below still run and publish the report,
+        # and the "Enforce complexity thresholds" step at the end fails the
+        # job based on this step's recorded outcome.
+        continue-on-error: true
         uses: moznion/cccc-action@v1
         with:
           path: .
@@ -89,3 +96,9 @@ jobs:
           config: .octocov.complexity.yml
         env:
           OCTOCOV_CUSTOM_METRICS_COMPLEXITY: custom_metrics_complexity.json
+
+      - name: Enforce complexity thresholds
+        if: steps.cccc.outcome == 'failure'
+        run: |
+          echo "cccc reported a function exceeding the max-cognitive/max-cyclomatic thresholds in .cccc.toml." >&2
+          exit 1

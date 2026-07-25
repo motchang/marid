@@ -59,29 +59,9 @@ and generates Mermaid ER diagrams based on the schema.`,
 				Format:   cfgFormat,
 			}
 
-			cfg := cmdConfig
-
-			if cfgUseMyCnf {
-				myCnfConfig, err := getMyCnfConfig()
-				if err != nil {
-					_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Could not read .my.cnf: %v\n", err)
-				} else {
-					cfg = *config.MergeWithCommandLineConfig(myCnfConfig, &cmdConfig)
-				}
-			}
-
-			if cfg.Database == "" {
-				return fmt.Errorf("database name is required")
-			}
-
-			if cfgNoPassword {
-				cfg.Password = ""
-			} else if cfgPromptPass {
-				password, err := promptForPassword()
-				if err != nil {
-					return fmt.Errorf("failed to read password: %w", err)
-				}
-				cfg.Password = password
+			cfg, err := resolveConfig(cmd, cmdConfig)
+			if err != nil {
+				return err
 			}
 
 			db, err := connect(cfg)
@@ -129,4 +109,35 @@ and generates Mermaid ER diagrams based on the schema.`,
 	rootCmd.Flags().StringVarP(&cfgFormat, "format", "f", formatter.DefaultFormat, formatDesc)
 
 	return rootCmd
+}
+
+// resolveConfig merges ~/.my.cnf settings (when requested) into cmdConfig,
+// validates the result, and applies password overrides.
+func resolveConfig(cmd *cobra.Command, cmdConfig config.Config) (config.Config, error) {
+	cfg := cmdConfig
+
+	if cfgUseMyCnf {
+		myCnfConfig, err := getMyCnfConfig()
+		if err != nil {
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Could not read .my.cnf: %v\n", err)
+		} else {
+			cfg = *config.MergeWithCommandLineConfig(myCnfConfig, &cmdConfig)
+		}
+	}
+
+	if cfg.Database == "" {
+		return cfg, fmt.Errorf("database name is required")
+	}
+
+	if cfgNoPassword {
+		cfg.Password = ""
+	} else if cfgPromptPass {
+		password, err := promptForPassword()
+		if err != nil {
+			return cfg, fmt.Errorf("failed to read password: %w", err)
+		}
+		cfg.Password = password
+	}
+
+	return cfg, nil
 }
