@@ -1,8 +1,10 @@
 package formatter_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/motchang/marid/pkg/formatter"
 	"github.com/motchang/marid/pkg/formatter/formattertest"
@@ -75,7 +77,9 @@ func TestRegisterPanicsOnNilFactory(t *testing.T) {
 }
 
 func TestRegisterPanicsOnDuplicateName(t *testing.T) {
-	const name = "test-register-duplicate"
+	// Registrations are never removed from the process-wide registry, so a fixed
+	// name would collide with itself on repeated runs (e.g. `go test -count=2`).
+	name := fmt.Sprintf("test-register-duplicate-%d", time.Now().UnixNano())
 
 	formatter.Register(name, newMockFactory())
 
