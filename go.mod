@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/DATA-DOG/go-sqlmock v0.0.0
 	github.com/go-ini/ini v1.67.0
-	github.com/go-sql-driver/mysql v1.10.1
+	github.com/go-sql-driver/mysql v1.10.2
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/term v0.48.0
 )
